@@ -45,14 +45,18 @@ export interface PhoneOption {
   battery_pct: number; warranty_months: number; price_ngn: number; topup_ngn: number;
 }
 // options: units with price_ngn > value_ngn and topup_ngn <= max_topup_ngn,
-// excluding units already sold (earliest successful Paystack payment for that unit_id),
+// excluding units already sold. Ledger rule: among transactions with status "success", currency NGN,
+// metadata present and amount_kobo === metadata.topup_ngn * 100, the earliest paid_at per unit_id
+// (reference as tie-break) owns the unit. Wrong-amount payments never own a unit.
 // sorted by topup_ngn ascending, at most 3
 export type FindPhonesResult = { options: PhoneOption[] } | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "PAYSTACK_UNAVAILABLE">;
 
 export interface Checkout { reference: string; checkout_url: string; topup_ngn: number; unit_id: string }
+// create_checkout refuses with FIND_MY_ON unless find_my_off is true: an activation-locked trade-in
+// is worthless, so the check is enforced in code, not only in the prompt.
 export type CreateCheckoutResult =
   | Checkout
-  | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "UNIT_UNKNOWN" | "UNIT_SOLD" | "NO_TOPUP_NEEDED" | "PAYSTACK_UNAVAILABLE">;
+  | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "FIND_MY_ON" | "UNIT_UNKNOWN" | "UNIT_SOLD" | "NO_TOPUP_NEEDED" | "PAYSTACK_UNAVAILABLE">;
 
 export type ConfirmPaymentResult =
   | { status: "reserved"; unit_id: string; topup_ngn: number; pickup_code: string } // pickup_code: 6 digits
@@ -68,6 +72,7 @@ export interface CheckoutMetadata { unit_id: string; topup_ngn: number; quote_to
 
 export interface PaystackTxn {
   reference: string;
+  currency: string; // "NGN"
   status: string; // Paystack data.status: "success" | "failed" | "abandoned" | "ongoing" | "pending" | "reversed" | ...
   amount_kobo: number;
   paid_at: string | null; // ISO-8601, null until paid
@@ -78,9 +83,13 @@ export interface PaystackTxn {
 export interface PaystackClient {
   // POST /transaction/initialize
   initialize(input: { email: string; amount_kobo: number; reference: string; metadata: CheckoutMetadata }): Promise<{ authorization_url: string; reference: string }>;
-  // GET /transaction/verify/:reference ; null when Paystack says the transaction does not exist
+  // GET /transaction/verify/:reference ; null ONLY when Paystack answers code "transaction_not_found"
+  // (HTTP 400) or HTTP 404. Any other 4xx, a 5xx, a timeout, a network error, or a body that cannot be
+  // read or parsed throws PaystackUnavailable.
   verify(reference: string): Promise<PaystackTxn | null>;
-  // GET /transaction?status=success ; recent successful transactions, used as the ledger of sold units
+  // GET /transaction?status=success ; EVERY page (perPage=100, follow meta.pageCount), restricted to
+  // transactions created on or after the client's `since` option when given (Paystack `from` param).
+  // The same error rules as verify apply.
   listSuccessful(): Promise<PaystackTxn[]>;
 }
 
@@ -101,9 +110,10 @@ export interface Deps {
 //                  readQuote(token: string, secret: string, now: number): QuotePayload | "QUOTE_INVALID" | "QUOTE_EXPIRED"
 // src/tools.ts     valueTradeIn(deps, args: { model: string; capacity_gb: number; faults: string[] }): Promise<ValueTradeInResult>
 //                  findPhones(deps, args: { quote_token: string; max_topup_ngn: number }): Promise<FindPhonesResult>
-//                  createCheckout(deps, args: { quote_token: string; unit_id: string }): Promise<CreateCheckoutResult>
+//                  createCheckout(deps, args: { quote_token: string; unit_id: string; find_my_off: boolean }): Promise<CreateCheckoutResult>
 //                  confirmPayment(deps, args: { reference: string }): Promise<ConfirmPaymentResult>
 //                  pickupCode(reference: string, secret: string): string
-// src/paystack.ts  httpPaystack(secretKey: string, opts?: { timeoutMs?: number; fetch?: typeof fetch }): PaystackClient
+// src/paystack.ts  httpPaystack(secretKey: string, opts?: { timeoutMs?: number; fetch?: typeof fetch; since?: string }): PaystackClient
+//                  (api/mcp.ts passes since = process.env.STOCK_EPOCH, an ISO date that resets the demo stock)
 // src/server.ts    buildServer(deps: Deps): McpServer   (tools: value_trade_in, find_phones, create_checkout, confirm_payment)
 // api/mcp.ts       default export (req, res): 401 unless "Authorization: Bearer <MCP_TOKEN>", else MCP Streamable HTTP, stateless
