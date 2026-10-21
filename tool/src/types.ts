@@ -63,7 +63,13 @@ export type ValueTradeInResult = Valuation | ToolError<"MODEL_NOT_BOUGHT" | "CAP
 export interface PhoneOption {
   unit_id: string; model: string; capacity_gb: number; grade: string;
   battery_pct: number; warranty_months: number; price_ngn: number; topup_ngn: number;
+  offer_token: string; // price lock, see below
 }
+// Price lock: each option carries offer_token = base64url(JSON {v:1, unit_id, price_ngn, topup_ngn, quote_sig, exp})
+// + "." + base64url(HMAC-SHA256(secret, "offer." + first part)). quote_sig is the signature part of the quote_token it
+// was computed against; exp equals that quote's exp. create_checkout charges exactly topup_ngn from the offer, so a
+// price the owner edits in the sheet after the customer saw the list never changes what they pay. The unit must still
+// be in the current stock and unsold, otherwise UNIT_SOLD.
 // options: units with price_ngn > value_ngn and topup_ngn <= max_topup_ngn,
 // excluding units already sold. Ledger rule: among transactions with status "success", currency NGN,
 // metadata present and amount_kobo === metadata.topup_ngn * 100, the earliest paid_at per unit_id
@@ -76,7 +82,9 @@ export interface Checkout { reference: string; checkout_url: string; topup_ngn: 
 // is worthless, so the check is enforced in code, not only in the prompt.
 export type CreateCheckoutResult =
   | Checkout
-  | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "FIND_MY_ON" | "UNIT_UNKNOWN" | "UNIT_SOLD" | "NO_TOPUP_NEEDED" | "PAYSTACK_UNAVAILABLE">;
+  | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "OFFER_INVALID" | "OFFER_EXPIRED" | "FIND_MY_ON" | "UNIT_SOLD" | "NO_TOPUP_NEEDED" | "PAYSTACK_UNAVAILABLE">;
+// OFFER_INVALID: bad signature, or the offer was made against a different quote_token. Check order: quote, offer,
+// find_my_off, unit still in stock and unsold, then Paystack.
 
 export type ConfirmPaymentResult =
   | { status: "reserved"; unit_id: string; topup_ngn: number; pickup_code: string } // pickup_code: 6 digits
@@ -162,7 +170,7 @@ export interface LoadedCatalog { catalog: Catalog; source: "sheet" | "cached_she
 //                  readQuote(token: string, secret: string, now: number): QuotePayload | "QUOTE_INVALID" | "QUOTE_EXPIRED"
 // src/tools.ts     valueTradeIn(deps, args: { model: string; capacity_gb: number; faults: string[] }): Promise<ValueTradeInResult>
 //                  findPhones(deps, args: { quote_token: string; max_topup_ngn: number }): Promise<FindPhonesResult>
-//                  createCheckout(deps, args: { quote_token: string; unit_id: string; find_my_off: boolean }): Promise<CreateCheckoutResult>
+//                  createCheckout(deps, args: { quote_token: string; offer_token: string; find_my_off: boolean }): Promise<CreateCheckoutResult>
 //                  confirmPayment(deps, args: { reference: string }): Promise<ConfirmPaymentResult>
 //                  pickupCode(reference: string, secret: string): string
 // src/paystack.ts  httpPaystack(secretKey: string, opts?: { timeoutMs?: number; fetch?: typeof fetch; since?: string }): PaystackClient
