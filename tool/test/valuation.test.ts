@@ -21,7 +21,7 @@ describe("loadCatalog (real data)", () => {
   test("parses the three csv files into typed rows", () => {
     assert.equal(real.prices.length, 26);
     assert.equal(real.faults.length, 9);
-    assert.equal(real.stock.length, 12);
+    assert.equal(real.stock.length, 25);
     const p = real.prices.find((r) => r.model === "iPhone 16 Plus" && r.capacity_gb === 256);
     assert.deepEqual(p, { model: "iPhone 16 Plus", capacity_gb: 256, base_ngn: 790000, floor_ngn: 115000 });
     const f = real.faults.find((r) => r.fault === "no_charge");

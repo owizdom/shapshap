@@ -44,10 +44,26 @@ describe("B14 MCP surface (in memory)", () => {
     const props = Object.fromEntries(tools.map((t) => [t.name, Object.keys(t.inputSchema.properties ?? {}).sort()]));
     assert.deepEqual(props, {
       confirm_payment: ["reference"],
-      create_checkout: ["quote_token", "unit_id"],
+      create_checkout: ["find_my_off", "quote_token", "unit_id"],
       find_phones: ["max_topup_ngn", "quote_token"],
       value_trade_in: ["capacity_gb", "faults", "model"],
     });
+  });
+
+  test("create_checkout requires a boolean find_my_off", async () => {
+    const { client } = await connect();
+    const { tools } = await client.listTools();
+    const t = tools.find((x) => x.name === "create_checkout")!;
+    assert.ok((t.inputSchema.required ?? []).includes("find_my_off"), JSON.stringify(t.inputSchema));
+    assert.equal((t.inputSchema.properties as any).find_my_off.type, "boolean");
+  });
+
+  test("create_checkout through MCP with find_my_off false is FIND_MY_ON", async () => {
+    const { client, ctx } = await connect();
+    const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } }));
+    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, unit_id: "T-4", find_my_off: false } }));
+    assert.equal(c.error, "FIND_MY_ON");
+    assert.equal(ctx.paystack.initializeCalls.length, 0);
   });
 
   test("B5: no tool input property is named like an amount or a price", async () => {
@@ -82,7 +98,7 @@ describe("B14 MCP surface (in memory)", () => {
     const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } }));
     const f = payloadOf(await client.callTool({ name: "find_phones", arguments: { quote_token: v.quote_token, max_topup_ngn: 60000 } }));
     assert.deepEqual(f.options.map((o: any) => o.unit_id), ["T-4", "T-5", "T-2"]);
-    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, unit_id: "T-4" } }));
+    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, unit_id: "T-4", find_my_off: true } }));
     assert.equal(c.topup_ngn, 10000);
     const s = payloadOf(await client.callTool({ name: "confirm_payment", arguments: { reference: c.reference } }));
     assert.deepEqual(s, { status: "waiting" });
@@ -155,6 +171,14 @@ describe("B14 bearer token over HTTP", () => {
     assert.ok(msg.result, JSON.stringify(msg));
     assert.equal(typeof msg.result.protocolVersion, "string");
     assert.ok(msg.result.capabilities.tools, "server must advertise tools");
+  });
+
+  test("F3: initialize with Accept: application/json only succeeds, not 406", async () => {
+    const res = await fetch(base, { method: "POST", headers: { "content-type": "application/json", accept: "application/json", authorization: `Bearer ${TOKEN}` }, body: initBody });
+    assert.equal(res.status, 200, await res.clone().text());
+    const msg = parseRpc(await res.text());
+    assert.equal(msg.id, 1);
+    assert.ok(msg.result, JSON.stringify(msg));
   });
 
   test("with the token, stateless tools/list lists the four tools", async () => {

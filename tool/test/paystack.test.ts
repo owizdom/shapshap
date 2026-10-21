@@ -1,8 +1,9 @@
-// httpPaystack: injected-fetch behaviour, plus one opt-in live test.
+// httpPaystack: injected-fetch behaviour. Live tests are in test/live/.
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { httpPaystack } from "../src/paystack.ts";
 import { PaystackUnavailable } from "../src/types.ts";
+import { paginatedApi, apiTxn } from "./fakes.ts";
 
 interface Seen { url: string; init: RequestInit | undefined }
 
@@ -54,10 +55,10 @@ describe("httpPaystack (injected fetch)", () => {
   test("verify maps data.* into a PaystackTxn", async () => {
     const { f, seen } = fakeFetch(() => json({
       status: true, message: "Verification successful",
-      data: { reference: "ref-1", status: "success", amount: 3000000, paid_at: "2026-10-21T10:00:00.000Z", gateway_response: "Successful", metadata: meta },
+      data: { reference: "ref-1", status: "success", currency: "NGN", amount: 3000000, paid_at: "2026-10-21T10:00:00.000Z", gateway_response: "Successful", metadata: meta },
     }));
     const t = await httpPaystack("sk_test_x", { fetch: f }).verify("ref-1");
-    assert.deepEqual(t, { reference: "ref-1", status: "success", amount_kobo: 3000000, paid_at: "2026-10-21T10:00:00.000Z", gateway_response: "Successful", metadata: meta });
+    assert.deepEqual(t, { reference: "ref-1", currency: "NGN", status: "success", amount_kobo: 3000000, paid_at: "2026-10-21T10:00:00.000Z", gateway_response: "Successful", metadata: meta });
     assert.match(seen[0].url, /\/transaction\/verify\/ref-1$/);
   });
 
@@ -68,9 +69,83 @@ describe("httpPaystack (injected fetch)", () => {
     assert.equal(t?.paid_at, null);
   });
 
-  test("verify with a 200 whose body has status false returns null", async () => {
-    const { f } = fakeFetch(() => json({ status: false, message: "Transaction reference not found" }, 200));
+  test("verify returns null for HTTP 400 with code transaction_not_found", async () => {
+    const { f } = fakeFetch(() => json({ status: false, message: "Transaction reference not found", code: "transaction_not_found" }, 400));
     assert.equal(await httpPaystack("sk_test_x", { fetch: f }).verify("nope"), null);
+  });
+
+  test("verify returns null for HTTP 404", async () => {
+    const { f } = fakeFetch(() => json({ status: false, message: "not found" }, 404));
+    assert.equal(await httpPaystack("sk_test_x", { fetch: f }).verify("nope"), null);
+  });
+
+  for (const status of [401, 403, 429]) {
+    test(`verify and listSuccessful throw PaystackUnavailable on HTTP ${status}`, async () => {
+      const { f } = fakeFetch(() => json({ status: false, message: "no" }, status));
+      const ps = httpPaystack("sk_test_x", { fetch: f });
+      await assert.rejects(() => ps.verify("ref-1"), PaystackUnavailable);
+      await assert.rejects(() => ps.listSuccessful(), PaystackUnavailable);
+    });
+  }
+
+  test("verify throws PaystackUnavailable on HTTP 400 with a different code", async () => {
+    const { f } = fakeFetch(() => json({ status: false, message: "bad", code: "invalid_params" }, 400));
+    await assert.rejects(() => httpPaystack("sk_test_x", { fetch: f }).verify("ref-1"), PaystackUnavailable);
+  });
+
+  test("verify throws PaystackUnavailable on a 200 whose body is not JSON", async () => {
+    const { f } = fakeFetch(() => new Response("<html>bad gateway page</html>", { status: 200 }));
+    const ps = httpPaystack("sk_test_x", { fetch: f });
+    await assert.rejects(() => ps.verify("ref-1"), PaystackUnavailable);
+    await assert.rejects(() => ps.listSuccessful(), PaystackUnavailable);
+  });
+
+  test("verify throws PaystackUnavailable when the body read fails mid-stream", async () => {
+    const { f } = fakeFetch(() => new Response(new ReadableStream({
+      start(c) { c.enqueue(new TextEncoder().encode('{"status":tr')); },
+      pull(c) { c.error(new Error("socket reset")); },
+    }), { status: 200 }));
+    await assert.rejects(() => httpPaystack("sk_test_x", { fetch: f }).verify("ref-1"), PaystackUnavailable);
+  });
+
+  test("listSuccessful follows meta.pageCount across every page", async () => {
+    const all = [];
+    for (let i = 0; i < 250; i++) all.push(apiTxn(`r${i}`, `U-${i}`, 1000, `2026-10-21T10:00:${String(i % 60).padStart(2, "0")}.000Z`));
+    const { f, urls } = paginatedApi(all);
+    const rows = await httpPaystack("sk_test_x", { fetch: f }).listSuccessful();
+    assert.equal(rows.length, 250);
+    assert.deepEqual(new Set(rows.map((r) => r.reference)).size, 250);
+    const pages = urls.map((u) => new URL(u)).filter((u) => u.pathname === "/transaction");
+    assert.deepEqual(pages.map((u) => u.searchParams.get("page")), ["1", "2", "3"]);
+    for (const u of pages) {
+      assert.equal(u.searchParams.get("perPage"), "100");
+      assert.equal(u.searchParams.get("status"), "success");
+    }
+    assert.equal(rows[0].currency, "NGN");
+  });
+
+  test("listSuccessful sends from=<since> on every page when since is given, and none when not", async () => {
+    const all = [];
+    for (let i = 0; i < 150; i++) all.push(apiTxn(`r${i}`, `U-${i}`, 1000, "2026-10-21T10:00:00.000Z"));
+    const since = "2026-10-20T00:00:00.000Z";
+    const a = paginatedApi(all);
+    await httpPaystack("sk_test_x", { fetch: a.f, since }).listSuccessful();
+    const listUrls = a.urls.map((u) => new URL(u)).filter((u) => u.pathname === "/transaction");
+    assert.equal(listUrls.length, 2);
+    for (const u of listUrls) assert.equal(u.searchParams.get("from"), since);
+    const b = paginatedApi(all);
+    await httpPaystack("sk_test_x", { fetch: b.f }).listSuccessful();
+    for (const u of b.urls.map((x) => new URL(x))) assert.equal(u.searchParams.get("from"), null);
+  });
+
+  test("a failure on page 2 throws PaystackUnavailable instead of returning a partial ledger", async () => {
+    let n = 0;
+    const { f } = fakeFetch(() => {
+      n++;
+      if (n === 1) return json({ status: true, message: "ok", data: [apiTxn("r0", "U", 1, "2026-10-21T10:00:00.000Z")], meta: { total: 150, page: 1, pageCount: 2, perPage: 100 } });
+      return json({ status: false, message: "boom" }, 503);
+    });
+    await assert.rejects(() => httpPaystack("sk_test_x", { fetch: f }).listSuccessful(), PaystackUnavailable);
   });
 
   test("listSuccessful asks for status=success and maps every row", async () => {
@@ -111,24 +186,4 @@ describe("httpPaystack (injected fetch)", () => {
     await assert.rejects(() => ps.initialize(initInput), PaystackUnavailable);
     await assert.rejects(() => ps.listSuccessful(), PaystackUnavailable);
   });
-});
-
-describe("httpPaystack (live, opt-in)", () => {
-  test("initializes a real test-mode transaction and verify reports it not yet paid",
-    { skip: process.env.PAYSTACK_LIVE_TEST !== "1" ? "set PAYSTACK_LIVE_TEST=1 to run against Paystack test mode" : false },
-    async () => {
-      const key = process.env.PAYSTACK_SECRET_KEY;
-      assert.ok(key, "PAYSTACK_SECRET_KEY must be set for the live test");
-      const ps = httpPaystack(key);
-      const reference = `live-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-      const r = await ps.initialize({ email: `live-${Date.now()}@example.com`, amount_kobo: 10000, reference, metadata: { unit_id: "LIVE-1", topup_ngn: 100, quote_token: "live" } });
-      assert.equal(r.reference, reference);
-      assert.match(r.authorization_url, /^https:\/\//);
-      const t = await ps.verify(reference);
-      assert.ok(t, "verify should find the transaction");
-      assert.equal(t.status, "abandoned");
-      assert.equal(t.paid_at, null);
-      assert.equal(t.amount_kobo, 10000);
-      assert.deepEqual(t.metadata, { unit_id: "LIVE-1", topup_ngn: 100, quote_token: "live" });
-    });
 });

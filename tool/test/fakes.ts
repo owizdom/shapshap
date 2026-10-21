@@ -23,7 +23,7 @@ export class FakePaystack implements PaystackClient {
 
   setTxn(t: Partial<PaystackTxn> & { reference: string }): PaystackTxn {
     const full: PaystackTxn = {
-      status: "success", amount_kobo: 0, paid_at: null, gateway_response: null, metadata: null, ...t,
+      currency: "NGN", status: "success", amount_kobo: 0, paid_at: null, gateway_response: null, metadata: null, ...t,
     };
     this.txns.set(full.reference, full);
     return full;
@@ -103,4 +103,44 @@ export function makeCtx(catalog: Catalog): TestCtx {
   const clock = { now: NOW };
   const deps: Deps = { catalog, paystack, secret: SECRET, now: () => clock.now };
   return { deps, paystack, clock };
+}
+
+// ---- A fake Paystack HTTP API (for httpPaystack with an injected fetch) ----
+// Serves GET /transaction?status=success with real pagination (newest first, like Paystack),
+// GET /transaction/verify/:ref, and records every URL asked.
+export interface ApiTxn {
+  reference: string; status: string; amount: number; currency: string;
+  paid_at: string | null; gateway_response: string | null; metadata: unknown;
+}
+
+export function apiTxn(reference: string, unit_id: string, topup_ngn: number, paid_at: string, over: Partial<ApiTxn> = {}): ApiTxn {
+  return {
+    reference, status: "success", amount: topup_ngn * 100, currency: "NGN", paid_at,
+    gateway_response: "Successful", metadata: { unit_id, topup_ngn, quote_token: "tok" }, ...over,
+  };
+}
+
+export function paginatedApi(all: ApiTxn[]) {
+  const urls: string[] = [];
+  const f = (async (input: any) => {
+    const url = typeof input === "string" ? input : input.url ?? String(input);
+    urls.push(url);
+    const u = new URL(url);
+    const j = (b: unknown, st = 200) => new Response(JSON.stringify(b), { status: st, headers: { "content-type": "application/json" } });
+    if (u.pathname === "/transaction") {
+      const perPage = Number(u.searchParams.get("perPage") ?? 50);
+      const page = Number(u.searchParams.get("page") ?? 1);
+      const ok = all.filter((t) => t.status === (u.searchParams.get("status") ?? t.status));
+      const pageCount = Math.max(1, Math.ceil(ok.length / perPage));
+      return j({ status: true, message: "Transactions retrieved", data: ok.slice((page - 1) * perPage, page * perPage), meta: { total: ok.length, page, pageCount, perPage } });
+    }
+    const m = u.pathname.match(/^\/transaction\/verify\/(.+)$/);
+    if (m) {
+      const t = all.find((x) => x.reference === decodeURIComponent(m[1]));
+      return t ? j({ status: true, message: "Verification successful", data: t })
+        : j({ status: false, message: "Transaction reference not found", code: "transaction_not_found" }, 400);
+    }
+    return j({ status: false, message: "unexpected " + url }, 500);
+  }) as unknown as typeof fetch;
+  return { f, urls };
 }
