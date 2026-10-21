@@ -68,7 +68,7 @@ export interface PhoneOption {
 // excluding units already sold. Ledger rule: among transactions with status "success", currency NGN,
 // metadata present and amount_kobo === metadata.topup_ngn * 100, the earliest paid_at per unit_id
 // (reference as tie-break) owns the unit. Wrong-amount payments never own a unit.
-// sorted by topup_ngn ascending, at most 3
+// sorted by topup_ngn ascending, ties by unit_id ascending, at most 3
 export type FindPhonesResult = { options: PhoneOption[] } | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "PAYSTACK_UNAVAILABLE">;
 
 export interface Checkout { reference: string; checkout_url: string; topup_ngn: number; unit_id: string }
