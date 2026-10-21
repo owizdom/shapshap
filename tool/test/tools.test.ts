@@ -37,18 +37,21 @@ async function tinyQuote(cat: Catalog = tinyCatalog()) {
 }
 
 describe("B4 find_phones", () => {
-  test("real data, worked case, max top-up 150000: SS-1401, SS-1311, SS-1321 in that order", async () => {
+  test("real data, worked case, max top-up 150000: the three cheapest top-ups among units priced 793000 to 943000", async () => {
     const ctx = makeCtx(real);
-    const v = await quoteFor(ctx, "iPhone 16 Plus", 256, ["no_charge"]);
-    assert.equal(v.value_ngn, 513000);
+    const v = await quoteFor(ctx, "iPhone 16 Plus", 256, ["charging_port"]);
+    assert.equal(v.value_ngn, 793000);
     const opts = options(await findPhones(ctx.deps, { quote_token: v.quote_token, max_topup_ngn: 150000 }));
-    assert.deepEqual(opts.map((o) => o.unit_id), ["SS-1401", "SS-1403", "SS-1311"]);
-    assert.deepEqual(opts.map((o) => o.topup_ngn), [7000, 17000, 27000]);
-    assert.deepEqual(opts.map((o) => o.price_ngn), [520000, 530000, 540000]);
+    // stock.csv units with 793000 < price <= 943000: SS-1602 815000, SS-1511 850000, SS-1611 850000, SS-1421 860000, SS-1601 860000, SS-1621 915000
+    assert.equal(opts.length, 3);
+    assert.deepEqual(opts.map((o) => o.topup_ngn), [22000, 57000, 57000]);
+    assert.deepEqual(opts.map((o) => o.price_ngn), [815000, 850000, 850000]);
+    assert.equal(opts[0].unit_id, "SS-1602");
+    assert.deepEqual(opts.slice(1).map((o) => o.unit_id).sort(), ["SS-1511", "SS-1611"]); // tied top-ups, either order
     const first = opts[0];
     assert.deepEqual(
       { model: first.model, capacity_gb: first.capacity_gb, grade: first.grade, battery_pct: first.battery_pct, warranty_months: first.warranty_months },
-      { model: "iPhone 14", capacity_gb: 128, grade: "A", battery_pct: 92, warranty_months: 6 },
+      { model: "iPhone 16 Plus", capacity_gb: 128, grade: "A", battery_pct: 95, warranty_months: 6 },
     );
   });
 
@@ -128,12 +131,12 @@ describe("B5 create_checkout: server-side amount", () => {
     assert.equal(c.checkout_url, `https://checkout.paystack.test/${c.reference}`);
   });
 
-  test("real data worked case: SS-1401 top-up is 7000 so 700000 kobo", async () => {
+  test("real data worked case: SS-1602 top-up is 22000 so 2200000 kobo", async () => {
     const ctx = makeCtx(real);
-    const v = await quoteFor(ctx, "iPhone 16 Plus", 256, ["no_charge"]);
-    const c = checkout(await createCheckout(ctx.deps, { quote_token: v.quote_token, unit_id: "SS-1401", find_my_off: true }));
-    assert.equal(c.topup_ngn, 7000);
-    assert.equal(ctx.paystack.initializeCalls[0].amount_kobo, 700000);
+    const v = await quoteFor(ctx, "iPhone 16 Plus", 256, ["charging_port"]);
+    const c = checkout(await createCheckout(ctx.deps, { quote_token: v.quote_token, unit_id: "SS-1602", find_my_off: true }));
+    assert.equal(c.topup_ngn, 22000);
+    assert.equal(ctx.paystack.initializeCalls[0].amount_kobo, 2200000);
   });
 
   test("two checkouts get distinct references", async () => {

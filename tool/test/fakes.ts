@@ -69,12 +69,16 @@ export function tinyCatalog(): Catalog {
     prices: [
       { model: "Test Phone", capacity_gb: 128, base_ngn: 100000, floor_ngn: 20000 },
       { model: "Test Phone", capacity_gb: 256, base_ngn: 100005, floor_ngn: 20000 },
-      { model: "Cheap Phone", capacity_gb: 64, base_ngn: 50000, floor_ngn: 12345 },
+      { model: "Cheap Phone", capacity_gb: 64, base_ngn: 50000, floor_ngn: 18345 },
+      { model: "Odd Phone", capacity_gb: 64, base_ngn: 100500, floor_ngn: 10000 },
     ],
     faults: [
-      { fault: "a", label: "Fault A", deduct_pct: 10 },
-      { fault: "b", label: "Fault B", deduct_pct: 15 },
-      { fault: "dead", label: "Dead", deduct_pct: 100 },
+      { fault: "a", label: "Fault A", category: "test", action: "deduct", deduct_pct: 10, check_hint: "", basis: "policy" },
+      { fault: "b", label: "Fault B", category: "test", action: "deduct", deduct_pct: 15, check_hint: "", basis: "policy" },
+      { fault: "dead", label: "Dead", category: "test", action: "deduct", deduct_pct: 70, check_hint: "", basis: "policy" },
+      { fault: "huge", label: "Huge", category: "test", action: "deduct", deduct_pct: 90, check_hint: "", basis: "policy" },
+      { fault: "insp", label: "Needs a look", category: "test", action: "inspect", deduct_pct: 20, check_hint: "", basis: "policy" },
+      { fault: "locked", label: "Locked", category: "test", action: "refuse", deduct_pct: 100, check_hint: "", basis: "policy" },
     ],
     stock: [
       { unit_id: "T-1", model: "Test Phone", capacity_gb: 128, grade: "A", battery_pct: 90, warranty_months: 3, price_ngn: 90000 },
