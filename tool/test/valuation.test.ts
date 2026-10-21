@@ -160,3 +160,87 @@ describe("B2 valuation", () => {
     assert.match(r.detail, /haunted/);
   });
 });
+
+const ROUND = "Rounded down to the nearest 1,000";
+const FLOOR = "Minimum we pay for this model";
+const sum = (xs: { ngn: number }[]) => xs.reduce((s, x) => s + x.ngn, 0);
+const adds = (r: Valuation) => r.base_ngn - sum(r.deductions) + sum(r.adjustments) === r.value_ngn;
+
+describe("valuation adjustments (the working adds up)", () => {
+  test("worked case shows the rounding adjustment", async () => {
+    const { deps } = makeCtx(real);
+    const r = asValuation(await valueTradeIn(deps, { model: "iPhone 16 Plus", capacity_gb: 256, faults: ["no_charge"] }));
+    assert.equal(r.deductions.length, 1);
+    assert.equal(r.deductions[0].fault, "no_charge");
+    assert.equal(r.deductions[0].ngn, 276500);
+    assert.deepEqual(r.adjustments, [{ label: ROUND, ngn: -500 }]);
+    assert.equal(r.value_ngn, 513000);
+    assert.ok(adds(r));
+  });
+
+  test("floor applies: one positive lift adjustment, no rounding adjustment", async () => {
+    const { deps } = makeCtx(tinyCatalog());
+    const r = asValuation(await valueTradeIn(deps, { model: "Cheap Phone", capacity_gb: 64, faults: ["dead"] }));
+    assert.equal(r.value_ngn, 12345);
+    assert.deepEqual(r.adjustments, [{ label: FLOOR, ngn: 12345 }]);
+    assert.ok(adds(r));
+  });
+
+  test("floor applies on real data with many faults", async () => {
+    const { deps } = makeCtx(real);
+    const p = real.prices[0];
+    const r = asValuation(await valueTradeIn(deps, { model: p.model, capacity_gb: p.capacity_gb, faults: real.faults.map((f) => f.fault) }));
+    const lifted = r.adjustments.filter((a) => a.label === FLOOR);
+    if (r.value_ngn === p.floor_ngn && r.base_ngn - sum(r.deductions) < p.floor_ngn) {
+      assert.equal(r.adjustments.length, 1);
+      assert.equal(lifted[0].ngn, p.floor_ngn - (r.base_ngn - sum(r.deductions)));
+      assert.ok(lifted[0].ngn > 0);
+    }
+    assert.ok(adds(r));
+  });
+
+  test("no rounding and no floor gives an empty adjustments list", async () => {
+    const { deps } = makeCtx(tinyCatalog());
+    const r = asValuation(await valueTradeIn(deps, { model: "Test Phone", capacity_gb: 128, faults: ["a"] }));
+    assert.equal(r.value_ngn, 90000);
+    assert.deepEqual(r.adjustments, []);
+    assert.ok(adds(r));
+  });
+
+  test("sum identity holds for every price row x every single fault and the all-faults set", async () => {
+    const { deps } = makeCtx(real);
+    const sets = [...real.faults.map((f) => [f.fault]), real.faults.map((f) => f.fault), []];
+    let n = 0;
+    for (const p of real.prices) {
+      for (const faults of sets) {
+        const r = asValuation(await valueTradeIn(deps, { model: p.model, capacity_gb: p.capacity_gb, faults }));
+        assert.ok(adds(r), `${p.model} ${p.capacity_gb} ${faults.join("+")}`);
+        assert.ok(r.adjustments.length <= 1);
+        const a = r.adjustments[0];
+        if (a?.label === FLOOR) assert.ok(a.ngn > 0);
+        else if (a) { assert.equal(a.label, ROUND); assert.ok(a.ngn < 0 && a.ngn > -1000); }
+        n++;
+      }
+    }
+    assert.equal(n, 26 * 11);
+  });
+});
+
+describe("model normalisation", () => {
+  for (const input of ["13 promax", "iphone 13 pro-max", "Apple iPhone 13 Pro Max", "  IPHONE   13   PRO   MAX "]) {
+    test(`"${input}" resolves to iPhone 13 Pro Max`, async () => {
+      const { deps } = makeCtx(real);
+      const r = await valueTradeIn(deps, { model: input, capacity_gb: 128, faults: [] });
+      assert.ok(!("error" in r), JSON.stringify(r));
+      assert.equal(r.model, "iPhone 13 Pro Max");
+      assert.equal(r.capacity_gb, 128);
+    });
+  }
+
+  test("Galaxy S23 is still MODEL_NOT_BOUGHT", async () => {
+    const { deps } = makeCtx(real);
+    const r = await valueTradeIn(deps, { model: "Galaxy S23", capacity_gb: 128, faults: [] });
+    assert.ok("error" in r);
+    assert.equal(r.error, "MODEL_NOT_BOUGHT");
+  });
+});

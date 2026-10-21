@@ -85,6 +85,7 @@ describe("B14 MCP surface (in memory)", () => {
     assert.equal(body.value_ngn, 75000);
     assert.equal(body.base_ngn, 100005);
     assert.equal(typeof body.quote_token, "string");
+    assert.deepEqual(body.adjustments, [{ label: "Rounded down to the nearest 1,000", ngn: -3 }]);
   });
 
   test("calling find_phones with a bad token returns QUOTE_INVALID through MCP", async () => {
