@@ -136,13 +136,17 @@ export interface Deps {
 // The owner keeps prices in a Google Sheet with three tabs mirroring the CSVs (same headers). Each tab is read
 // as CSV from its "publish to web" URL. Parsing is by header name, unknown columns are ignored, quoted cells
 // are supported, and numbers may be typed as the owner writes them ("₦850,000", "850,000", " 850000 ").
-// Numbers are whole naira: after stripping ₦, commas and spaces the cell must be digits only, so "850.000" or
-// "420,000.07" is rejected (row skipped, problem reported), never read as 850 or a fraction. Percent cells may end
+// Numbers are whole naira: after stripping ₦, commas and spaces the cell must be digits only, optionally followed by
+// ".00" or ".0" (Sheets currency formatting), so "₦815,000.00" is 815000, while "850.000" or "420,000.07" is rejected
+// (row skipped, problem reported), never read as 850 or a fraction. Percent cells may end
 // in "%". Plausible ranges: base_ngn and stock price_ngn 10,000..5,000,000; floor_ngn a multiple of 1,000.
 // Faults: action must be exactly deduct, inspect or refuse (case-insensitive, trimmed); anything else or a missing
 // action column skips the row with a problem. deduct_pct is optional on refuse rows (treated as 100).
 // Stock: model non-empty and capacity_gb a positive integer. A stock tab with a header and zero rows is valid (sold
-// out); prices and faults tabs need at least one valid row.
+// out); prices and faults tabs need at least one valid row. Every tab must carry its key headers (prices: model,
+// capacity_gb, base_ngn, floor_ngn; faults: fault, action; stock: unit_id, model, capacity_gb, price_ngn). A tab whose
+// key headers are missing (e.g. an HTML sign-in page), or a stock tab with data rows of which none is valid, counts as a
+// failed read (fallback), never as "sold out".
 // Speed: the endpoint loads the catalog only for tools/call, not initialize or tools/list. A failed sheet read is
 // remembered for cacheMs (no refetch on every request while the sheet is down), and a good read older than cacheMs
 // is served immediately while a background refresh runs (stale-while-revalidate).
