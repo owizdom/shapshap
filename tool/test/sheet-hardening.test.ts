@@ -267,13 +267,13 @@ describe("failure cache and stale-while-revalidate", () => {
 
   test("stale-while-revalidate: after cacheMs the cached good catalog returns immediately and one background refresh runs", async () => {
     let calls = 0;
-    let gate: (() => void) | undefined;
+    const gates: (() => void)[] = [];
     let slow = false;
     let priceBase = 500000;
     const f = (async (input: any) => {
       calls++;
       const url = typeof input === "string" ? input : input.url;
-      if (slow) await new Promise<void>((r) => { gate = r; setTimeout(r, 5000).unref(); });
+      if (slow) await new Promise<void>((r) => { gates.push(r); setTimeout(r, 5000).unref(); });
       const body = url === urls.prices ? GOODP(priceBase) : url === urls.faults ? FAULTS + okFault : STOCK + okStock;
       return new Response(body, { status: 200 });
     }) as unknown as typeof fetch;
@@ -301,7 +301,7 @@ describe("failure cache and stale-while-revalidate", () => {
 
     // let the refresh finish; the next load serves the new sheet
     slow = false;
-    for (let i = 0; i < 3; i++) gate?.();
+    for (const g of gates.splice(0)) g();
     await new Promise((r) => setTimeout(r, 50));
     const after = await load();
     assert.equal(after.catalog.prices[0].base_ngn, 650000);
