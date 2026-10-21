@@ -43,8 +43,30 @@ function records(text: string): Record<string, string>[] {
 function num(s: string | undefined, pct = false): number {
   let t = (s ?? "").replace(/[₦,\s]/g, "");
   if (pct && t.endsWith("%")) t = t.slice(0, -1);
-  if (!/^\d+$/.test(t)) return NaN;
+  if (!/^\d+(\.0{1,2})?$/.test(t)) return NaN;
   return Number(t);
+}
+
+const KEY_HEADERS = {
+  prices: ["model", "capacity_gb", "base_ngn", "floor_ngn"],
+  faults: ["fault", "action"],
+  stock: ["unit_id", "model", "capacity_gb", "price_ngn"],
+} as const;
+
+// Names the tabs whose header row lacks a key column (e.g. an HTML sign-in page served with status 200).
+export function missingHeaders(texts: CatalogTexts): string[] {
+  const out: string[] = [];
+  for (const tab of ["prices", "faults", "stock"] as const) {
+    const head = (parseCsv(texts[tab])[0] ?? []).map((h) => h.trim().toLowerCase());
+    const miss = KEY_HEADERS[tab].filter((h) => !head.includes(h));
+    if (miss.length) out.push(`${tab} (missing ${miss.join(", ")})`);
+  }
+  return out;
+}
+
+/** Number of data rows in a tab, valid or not. */
+export function dataRowCount(text: string): number {
+  return records(text).length;
 }
 
 const MIN_NGN = 10_000, MAX_NGN = 5_000_000;

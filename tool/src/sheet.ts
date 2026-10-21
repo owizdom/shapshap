@@ -1,4 +1,4 @@
-import { loadCatalog, parseCatalog } from "./catalog.ts";
+import { dataRowCount, loadCatalog, missingHeaders, parseCatalog } from "./catalog.ts";
 import type { Catalog, LoadedCatalog, SheetUrls } from "./types.ts";
 
 export function sheetCatalogLoader(
@@ -44,11 +44,13 @@ export function sheetCatalogLoader(
   async function read(): Promise<{ ok: true } | { ok: false; why: string }> {
     try {
       const [prices, faults, stock] = await Promise.all([tab(urls.prices), tab(urls.faults), tab(urls.stock)]);
+      const bad = missingHeaders({ prices, faults, stock });
+      if (bad.length > 0) return { ok: false, why: `sheet tab key headers missing: ${bad.join("; ")}` };
       const { catalog, problems } = parseCatalog({ prices, faults, stock });
       const empty: string[] = [];
       if (catalog.prices.length === 0) empty.push("prices");
       if (catalog.faults.length === 0) empty.push("faults");
-      if (stock.trim().length === 0) empty.push("stock");
+      if (catalog.stock.length === 0 && dataRowCount(stock) > 0) empty.push("stock");
       if (empty.length > 0) {
         return { ok: false, why: `sheet tab ${empty.join(", ")} has no valid rows${problems.length ? `: ${problems.join("; ")}` : ""}` };
       }
