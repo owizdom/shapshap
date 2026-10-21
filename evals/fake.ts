@@ -84,7 +84,7 @@ export function goodScripts(): Script {
       { steps: [], reply: "Hello! We do not buy Android phones, sorry. SharpSharp does trade-ins toward an iPhone from our stock. If you have an old iPhone, tell me the model and what is wrong with it." },
     ],
     water_damage: [
-      { steps: [], reply: "Ah sorry o. For water damage I no fit value the phone for chat. Abeg bring am come the shop make the owner check am." },
+      { steps: [valuationStep(v12d, ["liquid_damage", "no_power"]), phonesStep(120000, [])], reply: "Ah sorry o. Water damage and the phone no dey on, so this value na provisional until we check am for pickup. Right now nothing for stock fit that 120k budget. You fit add more?" },
     ],
     dead_phone_find_my_help: [
       { steps: [valuationStep(v12d, ["no_power"]), phonesStep(450000, o12d)], reply:

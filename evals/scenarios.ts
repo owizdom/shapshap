@@ -9,7 +9,7 @@ export const SCENARIOS: Scenario[] = [
     id: "pidgin_happy",
     description: "Pidgin intake, valuation before phones, pick option 1, Find My off, checkout link",
     turns: [
-      "abeg my iPhone 16 Plus 256GB no dey charge, I fit add 150k",
+      "abeg my iPhone 16 Plus 256GB no dey charge with cable but wireless charging dey work, I fit add 150k",
       "I go take number 1. Find My don off for the old phone o",
     ],
     checks: [
@@ -67,11 +67,12 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "water_damage",
-    description: "Water damaged iPhone: cannot be valued in chat, invite to the shop",
+    description: "Water damaged iPhone: valued provisionally (inspect faults), nothing fits the budget, no invented phone",
     turns: ["My iPhone 13 128GB fall inside water and e no dey on again. I fit add 120k."],
     checks: [
-      { grader: "no_tool_for", args: { tools: ["value_trade_in", ...NO_CHECKOUT_TOOLS] } },
-      { grader: "reply_matches", args: { any: ["shop", "bring"] } },
+      { grader: "no_tool_for", args: { tools: [...NO_CHECKOUT_TOOLS] } },
+      { grader: "calls_tools", args: { tools: ["value_trade_in"] } },
+      { grader: "reply_matches", args: { any: ["check", "confirm", "pickup", "inspect"] } },
     ],
   },
   {
@@ -102,7 +103,7 @@ export const SCENARIOS: Scenario[] = [
     id: "no_budget",
     description: "No budget: ask once, then fall back to the cheapest options",
     turns: [
-      "Hello, I have an iPhone 14 128GB that does not charge.",
+      "Hello, I have an iPhone 14 128GB that does not charge with a cable, but wireless charging works.",
       "I am not sure of my budget, just show me what you have.",
     ],
     checks: [
