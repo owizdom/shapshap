@@ -4,7 +4,11 @@
 // ---- Data rows (tool/data/*.csv) ----
 
 export interface PriceRow { model: string; capacity_gb: number; base_ngn: number; floor_ngn: number }
-export interface FaultRow { fault: string; label: string; deduct_pct: number }
+export type FaultAction = "deduct" | "inspect" | "refuse";
+export interface FaultRow {
+  fault: string; label: string; category: string; action: FaultAction;
+  deduct_pct: number; check_hint: string; basis: "sourced" | "policy";
+}
 export interface StockUnit {
   unit_id: string; model: string; capacity_gb: number; grade: string;
   battery_pct: number; warranty_months: number; price_ngn: number;
@@ -12,10 +16,17 @@ export interface StockUnit {
 export interface Catalog { prices: PriceRow[]; faults: FaultRow[]; stock: StockUnit[] }
 
 // ---- Valuation rules ----
+// Fault actions (faults.csv): "refuse" = the shop cannot buy the phone (iCloud, MDM, blacklisted...): value_trade_in
+//   returns FAULT_NOT_BOUGHT naming the fault, before any figure. "inspect" = cannot be judged in chat: its deduct_pct is a
+//   provisional hold, applied like a deduction, and the fault is listed in inspect_faults. "deduct" = applied as is.
+// MAX_DEDUCTION_PCT: the sum of deductions is capped at this share of base_ngn (shop policy); when the cap bites, an
+//   adjustment {label: "Deductions capped at 70% of base", ngn: +<excess>} keeps the working adding up. The cap applies
+//   before rounding and the floor.
 // deduction ngn for a fault = Math.round(base_ngn * deduct_pct / 100)
 // raw value = base_ngn - sum(deductions); duplicate faults count once
 // value_ngn = max(floor_ngn, floor_to_1000(raw value))
 // The working must add up exactly: value_ngn = base_ngn - sum(deductions.ngn) + sum(adjustments.ngn).
+//   cap: see MAX_DEDUCTION_PCT above.
 //   rounding: when floor_to_1000 removes naira, an adjustment {label: "Rounded down to the nearest 1,000", ngn: -<removed>}
 //   floor: when the floor lifts the value, an adjustment {label: "Minimum we pay for this model", ngn: +<lift>}
 //   (when the floor applies, there is no rounding adjustment; adjustments is [] when neither applies)
@@ -25,6 +36,7 @@ export interface Catalog { prices: PriceRow[]; faults: FaultRow[]; stock: StockU
 // a quote is valid for QUOTE_TTL_MS from issue
 
 export const QUOTE_TTL_MS = 48 * 60 * 60 * 1000;
+export const MAX_DEDUCTION_PCT = 70;
 
 export interface Deduction { fault: string; label: string; ngn: number }
 export interface Adjustment { label: string; ngn: number } // signed
@@ -32,6 +44,7 @@ export interface Adjustment { label: string; ngn: number } // signed
 export interface Valuation {
   quote_token: string; model: string; capacity_gb: number; base_ngn: number;
   deductions: Deduction[]; adjustments: Adjustment[]; value_ngn: number; valid_until: string; // ISO-8601
+  inspect_faults: { fault: string; label: string }[]; // provisional, confirmed at the pickup inspection
 }
 
 // ---- Quote token ----
@@ -45,7 +58,7 @@ export interface QuotePayload {
 
 export type ToolError<C extends string> = { error: C; detail: string };
 
-export type ValueTradeInResult = Valuation | ToolError<"MODEL_NOT_BOUGHT" | "CAPACITY_UNKNOWN" | "UNKNOWN_FAULT">;
+export type ValueTradeInResult = Valuation | ToolError<"MODEL_NOT_BOUGHT" | "CAPACITY_UNKNOWN" | "UNKNOWN_FAULT" | "FAULT_NOT_BOUGHT">;
 
 export interface PhoneOption {
   unit_id: string; model: string; capacity_gb: number; grade: string;
@@ -111,8 +124,29 @@ export interface Deps {
   now: () => number; // epoch ms
 }
 
+// ---- Owner price sheet (spec 0001 section 4b) ----
+// The owner keeps prices in a Google Sheet with three tabs mirroring the CSVs (same headers). Each tab is read
+// as CSV from its "publish to web" URL. Parsing is by header name, unknown columns are ignored, quoted cells
+// are supported, and numbers may be typed as the owner writes them ("₦850,000", "850,000", " 850000 ").
+// Row checks: prices need a model, capacity_gb > 0, base_ngn > 0 and 0 <= floor_ngn <= base_ngn, first row wins
+// on a duplicate model+capacity; faults need a key matching /^[a-z][a-z0-9_]*$/ and 0 <= deduct_pct <= 100;
+// stock needs a unique unit_id, price_ngn > 0 and 0 <= battery_pct <= 100. A failing row is skipped and
+// reported in `problems`; it never stops the rest loading.
+// Fallback is all-or-nothing: if any tab cannot be fetched (timeout, network, non-2xx) or yields zero valid
+// rows, the whole catalog comes from the last good sheet read if there is one, else from the bundled CSVs,
+// so prices never mix sources. A good read is cached for cacheMs.
+
+export interface CatalogTexts { prices: string; faults: string; stock: string }
+export interface SheetUrls { prices: string; faults: string; stock: string }
+export interface LoadedCatalog { catalog: Catalog; source: "sheet" | "cached_sheet" | "bundled"; problems: string[] }
+
 // ---- Module entry points the tests call (implemented in src/) ----
 // src/catalog.ts   loadCatalog(dir: string): Catalog
+//                  parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems: string[] }   (loadCatalog uses it)
+// src/sheet.ts     sheetCatalogLoader(urls: SheetUrls, opts?: { fetch?: typeof fetch; timeoutMs?: number /*3000*/;
+//                    cacheMs?: number /*60000*/; now?: () => number; bundled?: () => Catalog }): () => Promise<LoadedCatalog>
+//                  (api/mcp.ts uses it when PRICES_SHEET_PRICES_URL, PRICES_SHEET_FAULTS_URL and PRICES_SHEET_STOCK_URL
+//                   are all set, logs source and problems with console.warn, and otherwise uses loadCatalog())
 // src/quote.ts     signQuote(p: QuotePayload, secret: string): string
 //                  readQuote(token: string, secret: string, now: number): QuotePayload | "QUOTE_INVALID" | "QUOTE_EXPIRED"
 // src/tools.ts     valueTradeIn(deps, args: { model: string; capacity_gb: number; faults: string[] }): Promise<ValueTradeInResult>
