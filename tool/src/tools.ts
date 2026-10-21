@@ -1,5 +1,5 @@
 import { createHmac, randomBytes } from "node:crypto";
-import { signQuote, readQuote } from "./quote.ts";
+import { signQuote, readQuote, signOffer, readOffer } from "./quote.ts";
 import { MAX_DEDUCTION_PCT, PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
 import type {
   Adjustment, ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, ValueTradeInResult,
@@ -117,25 +117,36 @@ export async function findPhones(
     if (e instanceof PaystackUnavailable) return unavailable(e);
     throw e;
   }
+  const quoteSig = args.quote_token.split(".")[1];
   const options: PhoneOption[] = deps.catalog.stock
     .filter((u) => u.price_ngn > q.value_ngn && u.price_ngn - q.value_ngn <= args.max_topup_ngn && !ledger.has(u.unit_id))
     .map((u) => ({ ...u, topup_ngn: u.price_ngn - q.value_ngn }))
     .sort((a, b) => a.topup_ngn - b.topup_ngn || (a.unit_id < b.unit_id ? -1 : a.unit_id > b.unit_id ? 1 : 0))
-    .slice(0, 3);
+    .slice(0, 3)
+    .map((u) => ({
+      ...u,
+      offer_token: signOffer({ v: 1, unit_id: u.unit_id, price_ngn: u.price_ngn, topup_ngn: u.topup_ngn, quote_sig: quoteSig, exp: q.exp }, deps.secret),
+    }));
   return { options };
 }
 
 export async function createCheckout(
-  deps: Deps, args: { quote_token: string; unit_id: string; find_my_off: boolean },
+  deps: Deps, args: { quote_token: string; offer_token: string; find_my_off: boolean },
 ): Promise<CreateCheckoutResult> {
   const q = readQuote(args.quote_token, deps.secret, deps.now());
   if (typeof q === "string") return { error: q, detail: q === "QUOTE_EXPIRED" ? "The quote has expired. Value the phone again with value_trade_in." : "The quote token is not valid. Value the phone again with value_trade_in." };
+  const offer = readOffer(args.offer_token, deps.secret, deps.now(), args.quote_token.split(".")[1]);
+  if (typeof offer === "string") {
+    return { error: offer, detail: offer === "OFFER_EXPIRED"
+      ? "The offer has expired. Call find_phones again and offer the customer the new list."
+      : "The offer_token is not valid for this quote. Use the offer_token that find_phones returned for the chosen phone, with the same quote_token." };
+  }
   if (args.find_my_off !== true) {
     return { error: "FIND_MY_ON", detail: "Find My must be off on the trade-in phone. Ask the customer to turn it off and confirm, then call create_checkout again." };
   }
-  const unit = deps.catalog.stock.find((u) => u.unit_id === args.unit_id);
-  if (!unit) return { error: "UNIT_UNKNOWN", detail: `No unit "${args.unit_id}" in stock. Use a unit_id returned by find_phones.` };
-  const topup_ngn = unit.price_ngn - q.value_ngn;
+  const unit = deps.catalog.stock.find((u) => u.unit_id === offer.unit_id);
+  if (!unit) return { error: "UNIT_SOLD", detail: `Unit ${offer.unit_id} is no longer in stock. Call find_phones again and offer another phone.` };
+  const topup_ngn = offer.topup_ngn;
   if (topup_ngn <= 0) return { error: "NO_TOPUP_NEEDED", detail: "The trade-in value covers this phone, so no payment is needed. Tell the customer; do not create a checkout." };
   try {
     const ledger = buildLedger(await deps.paystack.listSuccessful());
