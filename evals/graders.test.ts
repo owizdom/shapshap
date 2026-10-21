@@ -198,3 +198,9 @@ test("valuation_before_phones: a re-run of both tools followed by a checkout lin
   const tr = { scenario: "x", turns: [{ customer: "take 1", reply: "Your link don ready: https://checkout.paystack.com/x\nAmount to pay: ₦22,000", steps }] } as any;
   assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, true);
 });
+
+test("valuation_before_phones: a confirmation turn naming one chosen phone before the value is not a list", () => {
+  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const tr = { scenario: "x", turns: [{ customer: "take 1", reply: "Your choice: iPhone 16 Plus 128GB, grade A. You add ₦22,000\nValue of your old phone: ₦793,000\nPay here: https://checkout.paystack.com/x", steps }] } as any;
+  assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, true);
+});

@@ -127,7 +127,7 @@ const valuation_before_phones: Grader = ({ transcript }) => {
     const p = lines.findIndex((l) => PHONE_LINE.test(l));
     // Only a reply that lists phones must show the valuation first; a later turn may re-run the tools just to get
     // fresh tokens (Chord does not carry tool results between turns) and then reply with a checkout link.
-    if (p === -1) continue;
+    if (lines.filter((l) => PHONE_LINE.test(l)).length < 2) continue; // a list, not a single confirmed choice
     checked++;
     if (v === -1) return bad(`turn ${i}: no value line with an amount`);
     if (p !== -1 && p < v) return bad(`turn ${i}: phone line (${p + 1}) before value line (${v + 1})`);
