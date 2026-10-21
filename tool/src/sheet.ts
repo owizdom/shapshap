@@ -10,6 +10,9 @@ export function sheetCatalogLoader(
   const now = opts.now ?? Date.now;
   const bundled = opts.bundled ?? (() => loadCatalog());
   let good: { at: number; catalog: Catalog; problems: string[] } | undefined;
+  const currentGood = () => good; // read through a function: TypeScript cannot see refresh() reassign good
+  let failure: { at: number; why: string } | undefined;
+  let inflight: Promise<void> | undefined;
 
   async function tab(url: string): Promise<string> {
     const f = opts.fetch ?? globalThis.fetch;
@@ -37,18 +40,62 @@ export function sheetCatalogLoader(
     return { catalog: bundled(), source: "bundled", problems: [why] };
   }
 
-  return async () => {
-    if (good && now() - good.at < cacheMs) return { catalog: good.catalog, source: "sheet", problems: good.problems };
+  // One sheet read. Resolves to a catalog, or to a failure reason; never rejects.
+  async function read(): Promise<{ ok: true } | { ok: false; why: string }> {
     try {
       const [prices, faults, stock] = await Promise.all([tab(urls.prices), tab(urls.faults), tab(urls.stock)]);
       const { catalog, problems } = parseCatalog({ prices, faults, stock });
-      for (const [name, rows] of [["prices", catalog.prices], ["faults", catalog.faults], ["stock", catalog.stock]] as const) {
-        if (rows.length === 0) return fallback(`sheet tab ${name} has no valid rows${problems.length ? `: ${problems.join("; ")}` : ""}`);
+      const empty: string[] = [];
+      if (catalog.prices.length === 0) empty.push("prices");
+      if (catalog.faults.length === 0) empty.push("faults");
+      if (stock.trim().length === 0) empty.push("stock");
+      if (empty.length > 0) {
+        return { ok: false, why: `sheet tab ${empty.join(", ")} has no valid rows${problems.length ? `: ${problems.join("; ")}` : ""}` };
       }
       good = { at: now(), catalog, problems };
-      return { catalog, source: "sheet", problems };
+      failure = undefined;
+      return { ok: true };
     } catch (e) {
-      return fallback(`sheet could not be read: ${e instanceof Error ? e.message : String(e)}`);
+      return { ok: false, why: `sheet could not be read: ${e instanceof Error ? e.message : String(e)}` };
     }
+  }
+
+  // Every tab fetch aborts at timeoutMs, so a refresh cannot legitimately run longer; one older than timeoutMs plus a
+  // margin is presumed stuck and replaced. Callers wait at most STALE_GRACE_MS for a refresh before serving stale.
+  const REFRESH_PATIENCE_MS = timeoutMs + 1000;
+  const STALE_GRACE_MS = 5;
+  let inflightSince = 0;
+
+  function refresh(): Promise<void> {
+    if (!inflight || Date.now() - inflightSince > REFRESH_PATIENCE_MS) {
+      const mine: Promise<void> = read().then((r) => {
+        if (!r.ok) failure = { at: now(), why: r.why };
+      }).finally(() => { if (inflight === mine) inflight = undefined; });
+      inflight = mine;
+      inflightSince = Date.now();
+    }
+    return inflight;
+  }
+
+  async function grace(p: Promise<void>): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([p, new Promise<void>((r) => { timer = setTimeout(r, STALE_GRACE_MS); })]);
+    clearTimeout(timer);
+  }
+
+  return async () => {
+    if (good && now() - good.at < cacheMs) return { catalog: good.catalog, source: "sheet", problems: good.problems };
+    if (good) {
+      // stale-while-revalidate: serve the last good read without waiting on the sheet, refresh in the background
+      const before = good;
+      if (!(failure && now() - failure.at < cacheMs)) await grace(refresh());
+      if (good !== before) return { catalog: good.catalog, source: "sheet", problems: good.problems };
+      return { catalog: good.catalog, source: "cached_sheet", problems: failure ? [failure.why, ...good.problems] : good.problems };
+    }
+    if (failure && now() - failure.at < cacheMs) return fallback(failure.why);
+    await refresh();
+    const fresh = currentGood();
+    if (fresh) return { catalog: fresh.catalog, source: "sheet", problems: fresh.problems };
+    return fallback(failure?.why ?? "sheet could not be read");
   };
 }
