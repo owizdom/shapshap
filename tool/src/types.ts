@@ -47,7 +47,7 @@ export interface PhoneOption {
 // options: units with price_ngn > value_ngn and topup_ngn <= max_topup_ngn,
 // excluding units already sold (earliest successful Paystack payment for that unit_id),
 // sorted by topup_ngn ascending, at most 3
-export type FindPhonesResult = { options: PhoneOption[] } | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED">;
+export type FindPhonesResult = { options: PhoneOption[] } | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "PAYSTACK_UNAVAILABLE">;
 
 export interface Checkout { reference: string; checkout_url: string; topup_ngn: number; unit_id: string }
 export type CreateCheckoutResult =
