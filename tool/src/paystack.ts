@@ -17,6 +17,7 @@ function parseMeta(m: unknown): CheckoutMetadata | null {
 function toTxn(d: any): PaystackTxn {
   return {
     reference: String(d.reference),
+    currency: String(d.currency ?? ""),
     status: String(d.status),
     amount_kobo: Number(d.amount),
     paid_at: d.paid_at ?? null,
@@ -25,11 +26,12 @@ function toTxn(d: any): PaystackTxn {
   };
 }
 
-export function httpPaystack(secretKey: string, opts: { timeoutMs?: number; fetch?: typeof fetch } = {}): PaystackClient {
+export function httpPaystack(secretKey: string, opts: { timeoutMs?: number; fetch?: typeof fetch; since?: string } = {}): PaystackClient {
   const timeoutMs = opts.timeoutMs ?? 8000;
   const doFetch = opts.fetch ?? fetch;
 
-  async function call(path: string, init: RequestInit = {}): Promise<{ http: number; body: any }> {
+  // Returns the HTTP status and parsed body of a 2xx, 400 or 404 answer. Everything else throws.
+  async function call(path: string, init: RequestInit = {}, tolerate: number[] = []): Promise<{ http: number; body: any }> {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(new Error("timeout")), timeoutMs);
     try {
@@ -38,9 +40,12 @@ export function httpPaystack(secretKey: string, opts: { timeoutMs?: number; fetc
         headers: { authorization: `Bearer ${secretKey}`, "content-type": "application/json" },
         signal: ctl.signal,
       });
-      if (res.status >= 500) throw new PaystackUnavailable(`Paystack HTTP ${res.status}`);
+      const ok = res.status >= 200 && res.status < 300;
+      if (!ok && !tolerate.includes(res.status)) throw new PaystackUnavailable(`Paystack HTTP ${res.status}`);
+      const text = await res.text();
       let body: any = null;
-      try { body = await res.json(); } catch { body = null; }
+      try { body = JSON.parse(text); } catch { body = null; }
+      if (ok && body === null) throw new PaystackUnavailable("Paystack returned a body that is not JSON");
       return { http: res.status, body };
     } catch (e) {
       if (e instanceof PaystackUnavailable) throw e;
@@ -62,16 +67,30 @@ export function httpPaystack(secretKey: string, opts: { timeoutMs?: number; fetc
       return { authorization_url: String(body.data.authorization_url), reference: String(body.data.reference ?? input.reference) };
     },
     async verify(reference) {
-      const { body } = await call(`/transaction/verify/${encodeURIComponent(reference)}`);
-      if (!body || body.status !== true || !body.data) return null;
+      const { http, body } = await call(`/transaction/verify/${encodeURIComponent(reference)}`, {}, [400, 404]);
+      if (http === 404) return null;
+      if (http === 400) {
+        if (body?.code === "transaction_not_found") return null;
+        throw new PaystackUnavailable(`Paystack HTTP 400: ${body?.message ?? "bad request"}`);
+      }
+      if (!body || body.status !== true || !body.data) throw new PaystackUnavailable("Paystack verify answered without data");
       return toTxn(body.data);
     },
     async listSuccessful() {
-      const { body } = await call("/transaction?status=success&perPage=100");
-      if (!body || body.status !== true || !Array.isArray(body.data)) {
-        throw new PaystackUnavailable(`Paystack list failed: ${body?.message ?? "no response"}`);
+      const out: PaystackTxn[] = [];
+      let pageCount = 1;
+      for (let page = 1; page <= pageCount; page++) {
+        const q = new URLSearchParams({ status: "success", perPage: "100", page: String(page) });
+        if (opts.since) q.set("from", opts.since);
+        const { body } = await call(`/transaction?${q.toString()}`);
+        if (!body || body.status !== true || !Array.isArray(body.data)) {
+          throw new PaystackUnavailable(`Paystack list failed: ${body?.message ?? "no response"}`);
+        }
+        out.push(...body.data.map(toTxn));
+        const pc = Number(body.meta?.pageCount);
+        if (Number.isFinite(pc) && pc > 0) pageCount = pc;
       }
-      return body.data.map(toTxn);
+      return out;
     },
   };
 }
