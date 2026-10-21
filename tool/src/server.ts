@@ -14,7 +14,7 @@ export function buildServer(deps: Deps): McpServer {
   const server = new McpServer({ name: "sharpsharp", version: "0.1.0" });
 
   server.registerTool("value_trade_in", {
-    description: "Values a customer's iPhone for trade-in from the shop's price list and returns a signed quote with the deduction working. Call it first, and quote the customer only the figures it returns.",
+    description: "Values a customer's iPhone for trade-in from the shop's price list and returns a signed quote with the deduction working. It may refuse a phone outright (FAULT_NOT_BOUGHT) and may mark some faults as provisional (inspect_faults), to be confirmed at the pickup inspection. Call it first, and quote the customer only the figures it returns.",
     inputSchema: {
       model: z.string().describe("iPhone model, for example iPhone 16 Plus"),
       capacity_gb: z.number().describe("Storage capacity in GB"),

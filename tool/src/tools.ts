@@ -1,6 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { signQuote, readQuote } from "./quote.ts";
-import { PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
+import { MAX_DEDUCTION_PCT, PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
 import type {
   Adjustment, ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, ValueTradeInResult,
 } from "./types.ts";
@@ -43,14 +43,26 @@ export async function valueTradeIn(
   }
   const unique = [...new Set(args.faults)].sort();
   const deductions = [];
+  const inspect_faults = [];
   for (const id of unique) {
     const f = catalog.faults.find((x) => x.fault === id);
     if (!f) return { error: "UNKNOWN_FAULT", detail: `Unknown fault "${id}". Use only the fault ids from the shop list, or leave faults empty.` };
-    deductions.push({ fault: f.fault, label: f.label, ngn: Math.round((row.base_ngn * f.deduct_pct) / 100) });
+    if (f.action === "refuse") return { error: "FAULT_NOT_BOUGHT", detail: `We cannot buy a phone with this fault: ${f.label} (${f.fault}). Tell the customer plainly; do not give a figure.` };
   }
-  const raw = row.base_ngn - deductions.reduce((s, d) => s + d.ngn, 0);
-  const rounded = Math.floor(raw / 1000) * 1000;
+  for (const id of unique) {
+    const f = catalog.faults.find((x) => x.fault === id)!;
+    deductions.push({ fault: f.fault, label: f.label, ngn: Math.round((row.base_ngn * f.deduct_pct) / 100) });
+    if (f.action === "inspect") inspect_faults.push({ fault: f.fault, label: f.label });
+  }
   const adjustments: Adjustment[] = [];
+  let total = deductions.reduce((s, d) => s + d.ngn, 0);
+  const capLimit = Math.round((row.base_ngn * MAX_DEDUCTION_PCT) / 100);
+  if (total > capLimit) {
+    adjustments.push({ label: `Deductions capped at ${MAX_DEDUCTION_PCT}% of base`, ngn: total - capLimit });
+    total = capLimit;
+  }
+  const raw = row.base_ngn - total;
+  const rounded = Math.floor(raw / 1000) * 1000;
   let value_ngn = rounded;
   if (rounded < row.floor_ngn) {
     value_ngn = row.floor_ngn;
@@ -65,7 +77,7 @@ export async function valueTradeIn(
   );
   return {
     quote_token, model: row.model, capacity_gb: row.capacity_gb, base_ngn: row.base_ngn,
-    deductions, adjustments, value_ngn, valid_until: new Date(exp).toISOString(),
+    deductions, adjustments, value_ngn, valid_until: new Date(exp).toISOString(), inspect_faults,
   };
 }
 
@@ -108,7 +120,7 @@ export async function findPhones(
   const options: PhoneOption[] = deps.catalog.stock
     .filter((u) => u.price_ngn > q.value_ngn && u.price_ngn - q.value_ngn <= args.max_topup_ngn && !ledger.has(u.unit_id))
     .map((u) => ({ ...u, topup_ngn: u.price_ngn - q.value_ngn }))
-    .sort((a, b) => a.topup_ngn - b.topup_ngn)
+    .sort((a, b) => a.topup_ngn - b.topup_ngn || (a.unit_id < b.unit_id ? -1 : a.unit_id > b.unit_id ? 1 : 0))
     .slice(0, 3);
   return { options };
 }
