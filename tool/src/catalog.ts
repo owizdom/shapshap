@@ -38,12 +38,17 @@ function records(text: string): Record<string, string>[] {
   });
 }
 
-// "₦850,000", "850,000", " 850000 " -> 850000; anything else -> NaN
-function num(s: string | undefined): number {
-  const t = (s ?? "").replace(/[₦,\s]/g, "");
-  if (!/^-?\d+(\.\d+)?$/.test(t)) return NaN;
+// "₦850,000", "850,000", " 850000 " -> 850000. Whole naira only: after stripping the symbol, commas and spaces the
+// cell must be digits only. A trailing "%" is allowed when `pct` is set. Anything else -> NaN.
+function num(s: string | undefined, pct = false): number {
+  let t = (s ?? "").replace(/[₦,\s]/g, "");
+  if (pct && t.endsWith("%")) t = t.slice(0, -1);
+  if (!/^\d+$/.test(t)) return NaN;
   return Number(t);
 }
+
+const MIN_NGN = 10_000, MAX_NGN = 5_000_000;
+const inRange = (n: number) => n >= MIN_NGN && n <= MAX_NGN;
 
 export function parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems: string[] } {
   const problems: string[] = [];
@@ -54,9 +59,9 @@ export function parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems:
     const where = `prices row ${i + 2}${model ? ` (${model} ${r.capacity_gb ?? ""} GB)` : ""}`;
     const capacity_gb = num(r.capacity_gb), base_ngn = num(r.base_ngn), floor_ngn = num(r.floor_ngn);
     if (!model) return void problems.push(`${where}: missing model, row skipped`);
-    if (!(capacity_gb > 0)) return void problems.push(`${where}: capacity_gb must be above 0, row skipped`);
-    if (!(base_ngn > 0)) return void problems.push(`${where}: base_ngn must be above 0, row skipped`);
-    if (!(floor_ngn >= 0 && floor_ngn <= base_ngn)) return void problems.push(`${where}: floor_ngn must be between 0 and base_ngn, row skipped`);
+    if (!(capacity_gb > 0)) return void problems.push(`${where}: capacity_gb must be a whole number above 0, row skipped`);
+    if (!inRange(base_ngn)) return void problems.push(`${where}: base_ngn must be a whole naira amount from 10,000 to 5,000,000, row skipped`);
+    if (!(floor_ngn >= 0 && floor_ngn <= base_ngn && floor_ngn % 1000 === 0)) return void problems.push(`${where}: floor_ngn must be a whole multiple of 1,000 between 0 and base_ngn, row skipped`);
     const key = `${model.toLowerCase()}|${capacity_gb}`;
     if (seenPrice.has(key)) return void problems.push(`${where}: duplicate of an earlier row, row skipped`);
     seenPrice.add(key);
@@ -68,13 +73,15 @@ export function parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems:
   records(texts.faults).forEach((r, i) => {
     const fault = r.fault ?? "";
     const where = `faults row ${i + 2} (${fault || "no key"})`;
-    const deduct_pct = num(r.deduct_pct);
     if (!/^[a-z][a-z0-9_]*$/.test(fault)) return void problems.push(`${where}: fault key must be lowercase letters, digits and underscores, starting with a letter, row skipped`);
-    if (!(deduct_pct >= 0 && deduct_pct <= 100)) return void problems.push(`${where}: deduct_pct must be between 0 and 100, row skipped`);
+    const a = (r.action ?? "").trim().toLowerCase();
+    if (a !== "deduct" && a !== "inspect" && a !== "refuse") return void problems.push(`${where}: action must be deduct, inspect or refuse, row skipped`);
+    const action: FaultAction = a;
+    const blank = (r.deduct_pct ?? "").trim() === "";
+    const deduct_pct = blank && action === "refuse" ? 100 : num(r.deduct_pct, true);
+    if (!(deduct_pct >= 0 && deduct_pct <= 100)) return void problems.push(`${where}: deduct_pct must be a whole number between 0 and 100, row skipped`);
     if (seenFault.has(fault)) return void problems.push(`${where}: duplicate of an earlier row, row skipped`);
     seenFault.add(fault);
-    const a = (r.action ?? "").toLowerCase();
-    const action: FaultAction = a === "refuse" || a === "inspect" ? a : "deduct";
     faults.push({
       fault, label: r.label ?? "", category: r.category ?? "", action, deduct_pct,
       check_hint: r.check_hint ?? "", basis: (r.basis ?? "").toLowerCase() === "sourced" ? "sourced" : "policy",
@@ -86,15 +93,17 @@ export function parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems:
   records(texts.stock).forEach((r, i) => {
     const unit_id = r.unit_id ?? "";
     const where = `stock row ${i + 2} (${unit_id || "no unit_id"})`;
-    const price_ngn = num(r.price_ngn), battery_pct = num(r.battery_pct);
+    const price_ngn = num(r.price_ngn), battery_pct = num(r.battery_pct, true), capacity_gb = num(r.capacity_gb);
     if (!unit_id) return void problems.push(`${where}: missing unit_id, row skipped`);
     if (seenUnit.has(unit_id)) return void problems.push(`${where}: duplicate unit_id, row skipped`);
-    if (!(price_ngn > 0)) return void problems.push(`${where}: price_ngn must be above 0, row skipped`);
+    if (!(r.model ?? "")) return void problems.push(`${where}: missing model, row skipped`);
+    if (!(capacity_gb > 0)) return void problems.push(`${where}: capacity_gb must be a whole number above 0, row skipped`);
+    if (!inRange(price_ngn)) return void problems.push(`${where}: price_ngn must be a whole naira amount from 10,000 to 5,000,000, row skipped`);
     if (!(battery_pct >= 0 && battery_pct <= 100)) return void problems.push(`${where}: battery_pct must be between 0 and 100, row skipped`);
     seenUnit.add(unit_id);
     const warranty = num(r.warranty_months);
     stock.push({
-      unit_id, model: r.model ?? "", capacity_gb: num(r.capacity_gb), grade: r.grade ?? "",
+      unit_id, model: r.model, capacity_gb, grade: r.grade ?? "",
       battery_pct, warranty_months: Number.isNaN(warranty) ? 0 : warranty, price_ngn,
     });
   });
