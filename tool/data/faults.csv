@@ -1,0 +1,10 @@
+fault,label,deduct_pct
+no_charge,Does not charge (charging port or charging IC),35
+no_power,Does not turn on,60
+screen_cracked,Screen cracked but works,20
+screen_dead,Screen black or not responding,40
+face_id,Face ID not working,25
+battery_service,Battery health below 80% or Service,10
+back_glass,Back glass cracked,8
+camera,Camera fault,15
+speaker_mic,Speaker or microphone fault,10

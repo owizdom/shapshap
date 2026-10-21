@@ -1,0 +1,16 @@
+{
+  "name": "sharpsharp-tool",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test --test-reporter=spec test/",
+    "test:live": "PAYSTACK_LIVE_TEST=1 node --env-file=../.env --test test/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.6.5"
+  }
+}
