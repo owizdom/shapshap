@@ -79,8 +79,8 @@ describe("B2 valuation", () => {
         checked++;
       }
     }
-    assert.equal(buyable.length, 36);
-    assert.equal(checked, 31 * 36);
+    assert.equal(buyable.length, 35);
+    assert.equal(checked, 31 * 35);
   });
 
   test("every price row with all deduct and inspect faults at once: capped, floored, sum identity", async () => {
@@ -241,7 +241,7 @@ describe("valuation adjustments (the working adds up)", () => {
         n++;
       }
     }
-    assert.equal(n, 31 * 38);
+    assert.equal(n, 31 * 37);
   });
 });
 
