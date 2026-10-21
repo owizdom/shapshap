@@ -15,16 +15,23 @@ export interface Catalog { prices: PriceRow[]; faults: FaultRow[]; stock: StockU
 // deduction ngn for a fault = Math.round(base_ngn * deduct_pct / 100)
 // raw value = base_ngn - sum(deductions); duplicate faults count once
 // value_ngn = max(floor_ngn, floor_to_1000(raw value))
-// model matching ignores case and surrounding spaces ("iphone 16 plus" == "iPhone 16 Plus")
+// The working must add up exactly: value_ngn = base_ngn - sum(deductions.ngn) + sum(adjustments.ngn).
+//   rounding: when floor_to_1000 removes naira, an adjustment {label: "Rounded down to the nearest 1,000", ngn: -<removed>}
+//   floor: when the floor lifts the value, an adjustment {label: "Minimum we pay for this model", ngn: +<lift>}
+//   (when the floor applies, there is no rounding adjustment; adjustments is [] when neither applies)
+// Model matching: case-insensitive; collapse repeated spaces; "promax", "pro-max" and "pro max" all mean "Pro Max";
+// a leading "apple " is dropped; a missing leading "iphone " is added ("13 promax" == "iPhone 13 Pro Max").
+// The result always carries the canonical model name from the price file.
 // a quote is valid for QUOTE_TTL_MS from issue
 
 export const QUOTE_TTL_MS = 48 * 60 * 60 * 1000;
 
 export interface Deduction { fault: string; label: string; ngn: number }
+export interface Adjustment { label: string; ngn: number } // signed
 
 export interface Valuation {
   quote_token: string; model: string; capacity_gb: number; base_ngn: number;
-  deductions: Deduction[]; value_ngn: number; valid_until: string; // ISO-8601
+  deductions: Deduction[]; adjustments: Adjustment[]; value_ngn: number; valid_until: string; // ISO-8601
 }
 
 // ---- Quote token ----
