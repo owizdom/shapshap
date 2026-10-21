@@ -84,7 +84,9 @@ export default async function handler(req: any, res: any): Promise<void> {
 
   fixAccept(req);
   try {
-    const server = buildServer({ catalog: await getCatalog(), paystack: httpPaystack(paystackKey, { since: process.env.STOCK_EPOCH || undefined }), secret, now: Date.now });
+    const calls = (Array.isArray(body) ? body : [body]).some((m: any) => m && m.method === "tools/call");
+    const catalog: Catalog = calls ? await getCatalog() : { prices: [], faults: [], stock: [] };
+    const server = buildServer({ catalog, paystack: httpPaystack(paystackKey, { since: process.env.STOCK_EPOCH || undefined }), secret, now: Date.now });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
       void transport.close();
