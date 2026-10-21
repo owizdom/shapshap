@@ -128,12 +128,23 @@ export interface Deps {
 // The owner keeps prices in a Google Sheet with three tabs mirroring the CSVs (same headers). Each tab is read
 // as CSV from its "publish to web" URL. Parsing is by header name, unknown columns are ignored, quoted cells
 // are supported, and numbers may be typed as the owner writes them ("₦850,000", "850,000", " 850000 ").
+// Numbers are whole naira: after stripping ₦, commas and spaces the cell must be digits only, so "850.000" or
+// "420,000.07" is rejected (row skipped, problem reported), never read as 850 or a fraction. Percent cells may end
+// in "%". Plausible ranges: base_ngn and stock price_ngn 10,000..5,000,000; floor_ngn a multiple of 1,000.
+// Faults: action must be exactly deduct, inspect or refuse (case-insensitive, trimmed); anything else or a missing
+// action column skips the row with a problem. deduct_pct is optional on refuse rows (treated as 100).
+// Stock: model non-empty and capacity_gb a positive integer. A stock tab with a header and zero rows is valid (sold
+// out); prices and faults tabs need at least one valid row.
+// Speed: the endpoint loads the catalog only for tools/call, not initialize or tools/list. A failed sheet read is
+// remembered for cacheMs (no refetch on every request while the sheet is down), and a good read older than cacheMs
+// is served immediately while a background refresh runs (stale-while-revalidate).
 // Row checks: prices need a model, capacity_gb > 0, base_ngn > 0 and 0 <= floor_ngn <= base_ngn, first row wins
 // on a duplicate model+capacity; faults need a key matching /^[a-z][a-z0-9_]*$/ and 0 <= deduct_pct <= 100;
 // stock needs a unique unit_id, price_ngn > 0 and 0 <= battery_pct <= 100. A failing row is skipped and
 // reported in `problems`; it never stops the rest loading.
 // Fallback is all-or-nothing: if any tab cannot be fetched (timeout, network, non-2xx) or yields zero valid
-// rows, the whole catalog comes from the last good sheet read if there is one, else from the bundled CSVs,
+// rows (stock excepted, see above), the whole catalog comes from the last good sheet read if there is one, else
+// from the bundled CSVs,
 // so prices never mix sources. A good read is cached for cacheMs.
 
 export interface CatalogTexts { prices: string; faults: string; stock: string }
