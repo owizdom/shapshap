@@ -447,3 +447,63 @@ describe("stock rows with empty model or bad capacity are skipped", () => {
     for (const s of r.catalog.stock) assert.ok(Number.isInteger(s.capacity_gb) && s.capacity_gb > 0);
   });
 });
+
+describe("tabs must carry their key headers; an all-invalid stock tab is a failed read", () => {
+  const urls: SheetUrls = { prices: "https://s.test/p", faults: "https://s.test/f", stock: "https://s.test/s" };
+  const HTML = "<!DOCTYPE html><html><body>Sign in</body></html>";
+  const mk = (over: Partial<Record<keyof SheetUrls, string>>) => {
+    const body: Record<string, string> = {
+      [urls.prices]: over.prices ?? PRICES + "Test Phone,128,100000,20000\n",
+      [urls.faults]: over.faults ?? FAULTS + okFault,
+      [urls.stock]: over.stock ?? STOCK + okStock,
+    };
+    const f = (async (input: any) => new Response(body[typeof input === "string" ? input : input.url], { status: 200 })) as unknown as typeof fetch;
+    return sheetCatalogLoader(urls, { fetch: f, timeoutMs: 50, bundled: () => tinyCatalog() });
+  };
+
+  for (const tab of ["stock", "prices", "faults"] as const) {
+    test(`an HTML body with status 200 for the ${tab} tab falls back, never source sheet`, async () => {
+      const r = await mk({ [tab]: HTML })();
+      assert.notEqual(r.source, "sheet");
+      assert.equal(r.source, "bundled");
+      assert.deepEqual(r.catalog, tinyCatalog());
+      assert.ok(r.problems.length > 0);
+    });
+  }
+
+  test("an HTML stock tab after a good read serves cached_sheet", async () => {
+    let html = false;
+    const f = (async (input: any) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (html && url === urls.stock) return new Response(HTML, { status: 200 });
+      const body = url === urls.prices ? PRICES + "Test Phone,128,100000,20000\n" : url === urls.faults ? FAULTS + okFault : STOCK + okStock;
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
+    const clock = { t: 1_000_000 };
+    const load = sheetCatalogLoader(urls, { fetch: f, timeoutMs: 50, cacheMs: 1000, now: () => clock.t, bundled: () => tinyCatalog() });
+    assert.equal((await load()).source, "sheet");
+    html = true;
+    clock.t += 1001;
+    const r = await load();
+    assert.equal(r.source, "cached_sheet");
+    assert.equal(r.catalog.stock.length, 1);
+  });
+
+  test("a stock tab whose rows all fail falls back with problems", async () => {
+    const r = await mk({ stock: STOCK + 'SS-1,iPhone 13,128,A,90,3,"₦815,000.50"\nSS-2,iPhone 13,128,A,90,3,"₦815,000.50"\n' })();
+    assert.equal(r.source, "bundled");
+    assert.ok(r.problems.length > 0);
+  });
+
+  test('"₦815,000.00" and "815000.0" parse to 815000', () => {
+    const r = parse(PRICES + 'iPhone 14,128,"₦815,000.00",45000\niPhone 15,128,815000.0,45000\n');
+    assert.deepEqual(r.problems, []);
+    assert.deepEqual(r.catalog.prices.map((p) => p.base_ngn), [815000, 815000]);
+  });
+
+  test("a header-only stock tab is still source sheet with stock []", async () => {
+    const r = await mk({ stock: STOCK })();
+    assert.equal(r.source, "sheet");
+    assert.deepEqual(r.catalog.stock, []);
+  });
+});
