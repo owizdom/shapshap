@@ -31,10 +31,11 @@ export function buildServer(deps: Deps): McpServer {
   }, async (args) => reply(await findPhones(deps, args)));
 
   server.registerTool("create_checkout", {
-    description: "Creates a Paystack payment link for the top-up on one chosen phone. Call it once the customer picks a unit; the amount is computed here and nowhere else.",
+    description: "Creates a Paystack payment link for the top-up on one chosen phone. Call it once the customer picks a unit; the amount is computed here and nowhere else. It requires the customer to have confirmed that Find My is off on their trade-in phone; pass find_my_off true only after they say so.",
     inputSchema: {
       quote_token: z.string().describe("The quote_token returned by value_trade_in"),
       unit_id: z.string().describe("The unit_id of the chosen phone from find_phones"),
+      find_my_off: z.boolean().describe("True only if the customer has confirmed Find My is turned off on the phone they are trading in"),
     },
   }, async (args) => reply(await createCheckout(deps, args)));
 

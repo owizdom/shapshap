@@ -27,6 +27,21 @@ async function readBody(req: any): Promise<unknown> {
   return text.length ? JSON.parse(text) : undefined;
 }
 
+// The SDK answers 406 unless Accept lists both types; add whichever is missing.
+function fixAccept(req: any): void {
+  if (req.method !== "POST") return;
+  const cur = String(req.headers?.accept ?? "");
+  const parts = [cur].filter((x) => x.trim().length > 0);
+  if (!cur.includes("application/json")) parts.push("application/json");
+  if (!cur.includes("text/event-stream")) parts.push("text/event-stream");
+  const value = parts.join(", ");
+  req.headers.accept = value;
+  if (Array.isArray(req.rawHeaders)) {
+    const i = req.rawHeaders.findIndex((h: string, k: number) => k % 2 === 0 && h.toLowerCase() === "accept");
+    if (i >= 0) req.rawHeaders[i + 1] = value; else req.rawHeaders.push("accept", value);
+  }
+}
+
 export default async function handler(req: any, res: any): Promise<void> {
   const token = process.env.MCP_TOKEN;
   if (!token) return send(res, 500, { error: "Server is not configured: MCP_TOKEN is missing." });
@@ -46,8 +61,9 @@ export default async function handler(req: any, res: any): Promise<void> {
     return send(res, 400, { jsonrpc: "2.0", error: { code: -32700, message: "Parse error" }, id: null });
   }
 
+  fixAccept(req);
   try {
-    const server = buildServer({ catalog: loadCatalog(), paystack: httpPaystack(paystackKey), secret, now: Date.now });
+    const server = buildServer({ catalog: loadCatalog(), paystack: httpPaystack(paystackKey, { since: process.env.STOCK_EPOCH || undefined }), secret, now: Date.now });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
       void transport.close();
