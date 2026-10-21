@@ -122,10 +122,13 @@ const valuation_before_phones: Grader = ({ transcript }) => {
     const t = transcript.turns[i];
     const steps = stepsOf(t);
     if (!steps.some((s) => isTool(s, "value_trade_in")) || !steps.some((s) => isTool(s, "find_phones"))) continue;
-    checked++;
     const lines = (t.reply ?? "").split("\n");
     const v = lines.findIndex((l) => VALUE_LINE.test(l) && extractAmounts(l).length > 0);
     const p = lines.findIndex((l) => PHONE_LINE.test(l));
+    // Only a reply that lists phones must show the valuation first; a later turn may re-run the tools just to get
+    // fresh tokens (Chord does not carry tool results between turns) and then reply with a checkout link.
+    if (p === -1) continue;
+    checked++;
     if (v === -1) return bad(`turn ${i}: no value line with an amount`);
     if (p !== -1 && p < v) return bad(`turn ${i}: phone line (${p + 1}) before value line (${v + 1})`);
   }
@@ -168,7 +171,9 @@ const checkout_gate: Grader = ({ transcript }) => {
   return ok(seen === 0 ? "no create_checkout calls" : `${seen} create_checkout call(s) gated`);
 };
 
-const RESERVED_SAY = /\breserved\b|pickup code/i;
+// Claims a reservation happened ("is reserved", "don reserve", "reserved for you", a pickup code), not the word in passing
+// ("to get you to a paid, reserved phone" is not a claim).
+const RESERVED_SAY = /\b(?:is|are|now|been|don|don\s+dey)\s+reserved\b|\breserved\s+for\s+you\b|\bdon\s+reserve\b|pickup code/i;
 const DECLINED_SAY = /\bdeclined\b|did not go through|no go through/i;
 
 const reserved_gate: Grader = ({ transcript }) => {

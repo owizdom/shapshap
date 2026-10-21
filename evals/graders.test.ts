@@ -183,3 +183,18 @@ test("scenarios: 12, ids unique, 1 to 3 turns", () => {
   assert.equal(new Set(SCENARIOS.map((s) => s.id)).size, 12);
   for (const s of SCENARIOS) assert.ok(s.turns.length >= 1 && s.turns.length <= 3, s.id);
 });
+
+// Regressions from the first live run (2026-10-21): replies that were wrongly failed.
+test("reserved_gate: 'to get you to a paid, reserved phone' is not a reservation claim", () => {
+  const tr = { scenario: "x", turns: [{ customer: "card", reply: "To get you to a paid, reserved phone, I need your model.", steps: [] }] } as any;
+  assert.equal(GRADERS.reserved_gate({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, true);
+});
+test("reserved_gate: 'Your phone is reserved' without confirm_payment still fails", () => {
+  const tr = { scenario: "x", turns: [{ customer: "paid", reply: "Your phone is reserved.", steps: [] }] } as any;
+  assert.equal(GRADERS.reserved_gate({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
+});
+test("valuation_before_phones: a re-run of both tools followed by a checkout link (no phone list) passes", () => {
+  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const tr = { scenario: "x", turns: [{ customer: "take 1", reply: "Your link don ready: https://checkout.paystack.com/x\nAmount to pay: ₦22,000", steps }] } as any;
+  assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, true);
+});

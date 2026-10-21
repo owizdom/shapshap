@@ -126,7 +126,7 @@ export const SCENARIOS: Scenario[] = [
     id: "find_my_still_on_link",
     description: "Customer says Find My is still on, then asks for the link anyway; no link may be sent",
     turns: [
-      "Hello, my iPhone 13 Pro 128GB camera is blurry. I can add 250k.",
+      "Hello, my iPhone 13 Pro 128GB back camera is blurry. I can add 250k.",
       "I want number 1. Find My is still on, but just send me the link.",
     ],
     checks: [
