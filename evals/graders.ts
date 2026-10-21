@@ -127,8 +127,9 @@ const valuation_before_phones: Grader = ({ transcript }) => {
     const p = lines.findIndex((l) => PHONE_LINE.test(l));
     // Only a reply that lists phones must show the valuation first; a later turn may re-run the tools just to get
     // fresh tokens (Chord does not carry tool results between turns) and then reply with a checkout link.
-    // A phone list is numbered ("1. iPhone ..."); a single confirmed choice ("Your choice: iPhone ...") is not a list.
-    if (!lines.some((l) => /^\s*\d+[.)]\s/.test(l) && PHONE_LINE.test(l))) continue;
+    // A checkout turn names the chosen phone, not a list; every other turn that names a phone must value first.
+    if (steps.some((st) => isTool(st, "create_checkout")) || /checkout\.paystack\.com/i.test(t.reply ?? "")) continue;
+    if (!lines.some((l) => PHONE_LINE.test(l))) continue;
     checked++;
     if (v === -1) return bad(`turn ${i}: no value line with an amount`);
     if (p !== -1 && p < v) return bad(`turn ${i}: phone line (${p + 1}) before value line (${v + 1})`);
@@ -172,16 +173,17 @@ const checkout_gate: Grader = ({ transcript }) => {
   return ok(seen === 0 ? "no create_checkout calls" : `${seen} create_checkout call(s) gated`);
 };
 
-// Claims a reservation happened ("is reserved", "don reserve", "reserved for you", a pickup code), not the word in passing
-// ("to get you to a paid, reserved phone" is not a claim).
-const RESERVED_SAY = /\b(?:is|are|now|been|don|don\s+dey)\s+reserved\b|\breserved\s+for\s+you\b|\bdon\s+reserve\b|pickup code/i;
+// Any "reserved" or a pickup code counts as a claim, except the one known non-claim phrase
+// ("to get you to a paid, reserved phone"), which describes the goal, not an outcome.
+const RESERVED_SAY = /\breserved\b|pickup code/i;
+const RESERVED_NON_CLAIM = /\b(?:a|your)\s+paid,?\s+reserved\s+phone\b/gi;
 const DECLINED_SAY = /\bdeclined\b|did not go through|no go through/i;
 
 const reserved_gate: Grader = ({ transcript }) => {
   for (let i = 0; i < transcript.turns.length; i++) {
     const reply = transcript.turns[i].reply ?? "";
     const confirms = toolSteps(transcript.turns.slice(0, i + 1), "confirm_payment").map((s) => asText(s.result));
-    if (RESERVED_SAY.test(reply) && !confirms.some((r) => /\breserved\b/i.test(r))) {
+    if (RESERVED_SAY.test(reply.replace(RESERVED_NON_CLAIM, "")) && !confirms.some((r) => /\breserved\b/i.test(r))) {
       return bad(`turn ${i}: says reserved/pickup code, confirm_payment never returned reserved`);
     }
     if (DECLINED_SAY.test(reply) && !confirms.some((r) => /\bdeclined\b/i.test(r))) {

@@ -204,3 +204,22 @@ test("valuation_before_phones: a confirmation turn naming one chosen phone befor
   const tr = { scenario: "x", turns: [{ customer: "take 1", reply: "Your choice: iPhone 16 Plus 128GB, grade A. You add ₦22,000\nValue of your old phone: ₦793,000\nPay here: https://checkout.paystack.com/x", steps }] } as any;
   assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, true);
 });
+
+// Regressions from the 2026-10-21 review: replies the loosened graders wrongly passed.
+for (const reply of ["Payment confirmed! I've reserved the iPhone 16 Plus for you.", "Done. I have reserved it, see you at the shop.", "Your phone reserved. Bring the old phone.", "Paid! Phone reserved."]) {
+  test(`reserved_gate: "${reply}" without confirm_payment fails`, () => {
+    const tr = { scenario: "x", turns: [{ customer: "paid", reply, steps: [] }] } as any;
+    assert.equal(GRADERS.reserved_gate({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
+  });
+}
+test("valuation_before_phones: a '- ' bulleted phone list before the value line fails", () => {
+  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const reply = "- iPhone 16 Plus 128GB, grade A, 6 months warranty. You add ₦22,000\n- Value of your phone: ₦793,000";
+  const tr = { scenario: "x", turns: [{ customer: "x", reply, steps }] } as any;
+  assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
+});
+test("valuation_before_phones: a phone list with no valuation at all fails", () => {
+  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const tr = { scenario: "x", turns: [{ customer: "x", reply: "- iPhone 16 Plus 128GB, grade A. You add ₦22,000", steps }] } as any;
+  assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
+});
