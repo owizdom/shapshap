@@ -6,8 +6,8 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "test": "node --test --test-reporter=spec test/",
-    "test:live": "PAYSTACK_LIVE_TEST=1 node --env-file=../.env --test test/"
+    "test": "node --test --test-reporter=spec \"test/*.test.ts\"",
+    "test:live": "PAYSTACK_LIVE_TEST=1 node --env-file=../.env --test --test-reporter=spec \"test/*.test.ts\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
