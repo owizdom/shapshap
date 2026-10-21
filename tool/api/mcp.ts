@@ -1,6 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { loadCatalog } from "../src/catalog.ts";
+import { sheetCatalogLoader } from "../src/sheet.ts";
+import type { Catalog, SheetUrls } from "../src/types.ts";
 import { httpPaystack } from "../src/paystack.ts";
 import { buildServer } from "../src/server.ts";
 
@@ -42,6 +44,25 @@ function fixAccept(req: any): void {
   }
 }
 
+// Module level so the sheet cache survives across requests in a warm function.
+let sheetLoader: { key: string; load: ReturnType<typeof sheetCatalogLoader> } | undefined;
+
+async function getCatalog(): Promise<Catalog> {
+  const prices = process.env.PRICES_SHEET_PRICES_URL, faults = process.env.PRICES_SHEET_FAULTS_URL, stock = process.env.PRICES_SHEET_STOCK_URL;
+  if (!prices || !faults || !stock) return loadCatalog();
+  try {
+    const urls: SheetUrls = { prices, faults, stock };
+    const key = JSON.stringify(urls);
+    if (!sheetLoader || sheetLoader.key !== key) sheetLoader = { key, load: sheetCatalogLoader(urls) };
+    const r = await sheetLoader.load();
+    console.warn(`catalog source: ${r.source}`, ...(r.problems.length ? [r.problems] : []));
+    return r.catalog;
+  } catch (e) {
+    console.warn("catalog sheet loader failed, using bundled prices", e instanceof Error ? e.message : String(e));
+    return loadCatalog();
+  }
+}
+
 export default async function handler(req: any, res: any): Promise<void> {
   const token = process.env.MCP_TOKEN;
   if (!token) return send(res, 500, { error: "Server is not configured: MCP_TOKEN is missing." });
@@ -63,7 +84,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 
   fixAccept(req);
   try {
-    const server = buildServer({ catalog: loadCatalog(), paystack: httpPaystack(paystackKey, { since: process.env.STOCK_EPOCH || undefined }), secret, now: Date.now });
+    const server = buildServer({ catalog: await getCatalog(), paystack: httpPaystack(paystackKey, { since: process.env.STOCK_EPOCH || undefined }), secret, now: Date.now });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
       void transport.close();
