@@ -2,10 +2,19 @@ import { createHmac, randomBytes } from "node:crypto";
 import { signQuote, readQuote } from "./quote.ts";
 import { PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
 import type {
-  ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, ValueTradeInResult,
+  Adjustment, ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, ValueTradeInResult,
 } from "./types.ts";
 
 const norm = (s: string) => s.trim().toLowerCase();
+
+// "13 promax" / "Apple iPhone 13 Pro-Max" -> "iphone 13 pro max"
+function normModel(s: string): string {
+  let m = s.toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+  m = m.replace(/\bpro\s?max\b/g, "pro max");
+  m = m.replace(/^apple\s+/, "");
+  if (!m.startsWith("iphone ")) m = `iphone ${m}`;
+  return m;
+}
 
 function randomId(n: number): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -24,8 +33,8 @@ export async function valueTradeIn(
   deps: Deps, args: { model: string; capacity_gb: number; faults: string[] },
 ): Promise<ValueTradeInResult> {
   const { catalog } = deps;
-  const m = norm(args.model);
-  const models = catalog.prices.filter((p) => norm(p.model) === m);
+  const m = normModel(args.model);
+  const models = catalog.prices.filter((p) => normModel(p.model) === m);
   if (models.length === 0) return { error: "MODEL_NOT_BOUGHT", detail: `We do not buy "${args.model.trim()}". Tell the customer plainly that we cannot value this model.` };
   const row = models.find((p) => p.capacity_gb === args.capacity_gb);
   if (!row) {
@@ -40,7 +49,15 @@ export async function valueTradeIn(
     deductions.push({ fault: f.fault, label: f.label, ngn: Math.round((row.base_ngn * f.deduct_pct) / 100) });
   }
   const raw = row.base_ngn - deductions.reduce((s, d) => s + d.ngn, 0);
-  const value_ngn = Math.max(row.floor_ngn, Math.floor(raw / 1000) * 1000);
+  const rounded = Math.floor(raw / 1000) * 1000;
+  const adjustments: Adjustment[] = [];
+  let value_ngn = rounded;
+  if (rounded < row.floor_ngn) {
+    value_ngn = row.floor_ngn;
+    adjustments.push({ label: "Minimum we pay for this model", ngn: row.floor_ngn - raw });
+  } else if (rounded < raw) {
+    adjustments.push({ label: "Rounded down to the nearest 1,000", ngn: rounded - raw });
+  }
   const iat = deps.now();
   const exp = iat + QUOTE_TTL_MS;
   const quote_token = signQuote(
@@ -48,7 +65,7 @@ export async function valueTradeIn(
   );
   return {
     quote_token, model: row.model, capacity_gb: row.capacity_gb, base_ngn: row.base_ngn,
-    deductions, value_ngn, valid_until: new Date(exp).toISOString(),
+    deductions, adjustments, value_ngn, valid_until: new Date(exp).toISOString(),
   };
 }
 
