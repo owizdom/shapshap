@@ -44,7 +44,7 @@ describe("B14 MCP surface (in memory)", () => {
     const props = Object.fromEntries(tools.map((t) => [t.name, Object.keys(t.inputSchema.properties ?? {}).sort()]));
     assert.deepEqual(props, {
       confirm_payment: ["reference"],
-      create_checkout: ["find_my_off", "quote_token", "unit_id"],
+      create_checkout: ["find_my_off", "offer_token", "quote_token"],
       find_phones: ["max_topup_ngn", "quote_token"],
       value_trade_in: ["capacity_gb", "faults", "model"],
     });
@@ -61,7 +61,8 @@ describe("B14 MCP surface (in memory)", () => {
   test("create_checkout through MCP with find_my_off false is FIND_MY_ON", async () => {
     const { client, ctx } = await connect();
     const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } }));
-    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, unit_id: "T-4", find_my_off: false } }));
+    const f = payloadOf(await client.callTool({ name: "find_phones", arguments: { quote_token: v.quote_token, max_topup_ngn: 60000 } }));
+    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, offer_token: f.options[0].offer_token, find_my_off: false } }));
     assert.equal(c.error, "FIND_MY_ON");
     assert.equal(ctx.paystack.initializeCalls.length, 0);
   });
@@ -99,7 +100,7 @@ describe("B14 MCP surface (in memory)", () => {
     const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } }));
     const f = payloadOf(await client.callTool({ name: "find_phones", arguments: { quote_token: v.quote_token, max_topup_ngn: 60000 } }));
     assert.deepEqual(f.options.map((o: any) => o.unit_id), ["T-4", "T-5", "T-2"]);
-    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, unit_id: "T-4", find_my_off: true } }));
+    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, offer_token: f.options[0].offer_token, find_my_off: true } }));
     assert.equal(c.topup_ngn, 10000);
     const s = payloadOf(await client.callTool({ name: "confirm_payment", arguments: { reference: c.reference } }));
     assert.deepEqual(s, { status: "waiting" });

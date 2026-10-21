@@ -101,11 +101,11 @@ describe("B3 every tool that takes a token refuses bad ones", () => {
       ["garbage", "garbage"],
     ];
     for (const [name, t] of cases) {
-      const r = await createCheckout(ctx.deps, { quote_token: t, unit_id: "T-2" });
+      const r = await createCheckout(ctx.deps, { quote_token: t, offer_token: "x.y", find_my_off: true });
       assert.deepEqual("error" in r && r.error, "QUOTE_INVALID", name);
     }
     ctx.clock.now = NOW + QUOTE_TTL_MS + 1;
-    const r = await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2" });
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: "x.y", find_my_off: true });
     assert.equal("error" in r && r.error, "QUOTE_EXPIRED");
     assert.equal(ctx.paystack.initializeCalls.length, 0);
   });
@@ -114,7 +114,7 @@ describe("B3 every tool that takes a token refuses bad ones", () => {
     const { ctx } = await goodToken();
     const foreign = signQuote({ ...payload, model: "Test Phone", faults: [], value_ngn: 1000 }, "attacker-secret");
     const a = await findPhones(ctx.deps, { quote_token: foreign, max_topup_ngn: 500000 });
-    const b = await createCheckout(ctx.deps, { quote_token: foreign, unit_id: "T-2" });
+    const b = await createCheckout(ctx.deps, { quote_token: foreign, offer_token: "x.y", find_my_off: true });
     assert.equal("error" in a && a.error, "QUOTE_INVALID");
     assert.equal("error" in b && b.error, "QUOTE_INVALID");
   });

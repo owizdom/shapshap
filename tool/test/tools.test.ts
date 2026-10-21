@@ -6,7 +6,7 @@ import { loadCatalog } from "../src/catalog.ts";
 import { valueTradeIn, findPhones, createCheckout, confirmPayment, pickupCode } from "../src/tools.ts";
 import { readQuote } from "../src/quote.ts";
 import type { Catalog, Valuation, PhoneOption, Checkout } from "../src/types.ts";
-import { NOW, SECRET, makeCtx, tinyCatalog, paginatedApi, apiTxn } from "./fakes.ts";
+import { NOW, SECRET, makeCtx, tinyCatalog, paginatedApi, apiTxn, offerFor, forgeOffer } from "./fakes.ts";
 import { httpPaystack } from "../src/paystack.ts";
 import type { TestCtx } from "./fakes.ts";
 
@@ -117,7 +117,7 @@ describe("B4 find_phones", () => {
 describe("B5 create_checkout: server-side amount", () => {
   test("initializes Paystack with (price - value) * 100 kobo and the metadata", async () => {
     const { ctx, token } = await tinyQuote();
-    const c = checkout(await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true }));
+    const c = checkout(await createCheckout(ctx.deps, { quote_token: token, offer_token: await offerFor(ctx, token, "T-2"), find_my_off: true }));
     assert.equal(c.unit_id, "T-2");
     assert.equal(c.topup_ngn, 30000);
     assert.equal(ctx.paystack.initializeCalls.length, 1);
@@ -134,38 +134,40 @@ describe("B5 create_checkout: server-side amount", () => {
   test("real data worked case: SS-1602 top-up is 22000 so 2200000 kobo", async () => {
     const ctx = makeCtx(real);
     const v = await quoteFor(ctx, "iPhone 16 Plus", 256, ["charging_port"]);
-    const c = checkout(await createCheckout(ctx.deps, { quote_token: v.quote_token, unit_id: "SS-1602", find_my_off: true }));
+    const c = checkout(await createCheckout(ctx.deps, { quote_token: v.quote_token, offer_token: await offerFor(ctx, v.quote_token, "SS-1602"), find_my_off: true }));
     assert.equal(c.topup_ngn, 22000);
     assert.equal(ctx.paystack.initializeCalls[0].amount_kobo, 2200000);
   });
 
   test("two checkouts get distinct references", async () => {
     const { ctx, token } = await tinyQuote();
-    const a = checkout(await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true }));
-    const b = checkout(await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true }));
+    const a = checkout(await createCheckout(ctx.deps, { quote_token: token, offer_token: await offerFor(ctx, token, "T-2"), find_my_off: true }));
+    const b = checkout(await createCheckout(ctx.deps, { quote_token: token, offer_token: await offerFor(ctx, token, "T-2"), find_my_off: true }));
     assert.notEqual(a.reference, b.reference);
   });
 
   test("NO_TOPUP_NEEDED when price <= value (equal and lower)", async () => {
     const { ctx, token } = await tinyQuote();
-    for (const unit_id of ["T-7", "T-1"]) {
-      const r = await createCheckout(ctx.deps, { quote_token: token, unit_id, find_my_off: true });
+    // find_phones never offers these; only a hand-signed offer (secret holder) can reach this guard
+    for (const [unit_id, price] of [["T-7", 100000], ["T-1", 90000]] as const) {
+      const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: forgeOffer(token, unit_id, price, price - 100000), find_my_off: true });
       assert.equal("error" in r && r.error, "NO_TOPUP_NEEDED", unit_id);
     }
     assert.equal(ctx.paystack.initializeCalls.length, 0);
   });
 
-  test("UNIT_UNKNOWN for an id not in stock", async () => {
+  test("UNIT_SOLD for an offered unit that is no longer in stock", async () => {
     const { ctx, token } = await tinyQuote();
-    const r = await createCheckout(ctx.deps, { quote_token: token, unit_id: "NOPE-1", find_my_off: true });
-    assert.equal("error" in r && r.error, "UNIT_UNKNOWN");
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: forgeOffer(token, "NOPE-1", 130000, 30000), find_my_off: true });
+    assert.equal("error" in r && r.error, "UNIT_SOLD");
     assert.equal(ctx.paystack.initializeCalls.length, 0);
   });
 
   test("UNIT_SOLD when a successful payment already exists for the unit", async () => {
     const { ctx, token } = await tinyQuote();
+    const offer_token = await offerFor(ctx, token, "T-2"); // offered before the other buyer paid
     ctx.paystack.paid("ref-other", "T-2", 30000, "2026-10-21T10:00:00.000Z");
-    const r = await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true });
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token, find_my_off: true });
     assert.equal("error" in r && r.error, "UNIT_SOLD");
     assert.equal(ctx.paystack.initializeCalls.length, 0);
   });
@@ -173,14 +175,15 @@ describe("B5 create_checkout: server-side amount", () => {
   test("PAYSTACK_UNAVAILABLE when initialize throws PaystackUnavailable", async () => {
     const { ctx, token } = await tinyQuote();
     ctx.paystack.failInitialize = true;
-    const r = await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true });
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: await offerFor(ctx, token, "T-2"), find_my_off: true });
     assert.equal("error" in r && r.error, "PAYSTACK_UNAVAILABLE");
   });
 
   test("PAYSTACK_UNAVAILABLE when the sold ledger cannot be read", async () => {
     const { ctx, token } = await tinyQuote();
+    const offer_token = await offerFor(ctx, token, "T-2");
     ctx.paystack.failList = true;
-    const r = await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true });
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token, find_my_off: true });
     assert.equal("error" in r && r.error, "PAYSTACK_UNAVAILABLE");
     assert.equal(ctx.paystack.initializeCalls.length, 0);
   });
@@ -191,7 +194,7 @@ describe("B6 B7 B8 confirm_payment", () => {
 
   async function pending() {
     const { ctx, token } = await tinyQuote();
-    const c = checkout(await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true }));
+    const c = checkout(await createCheckout(ctx.deps, { quote_token: token, offer_token: await offerFor(ctx, token, "T-2"), find_my_off: true }));
     return { ctx, token, ref: c.reference };
   }
 
@@ -346,7 +349,7 @@ describe("F1 ledger: every page, correct-amount NGN only", () => {
 
   test("create_checkout is UNIT_SOLD when the earliest payment is on the last page", async () => {
     const { ctx, token } = await withApi(crowdedLedger());
-    const r = await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true });
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: forgeOffer(token, "T-2", 130000, 30000), find_my_off: true });
     assert.equal("error" in r && r.error, "UNIT_SOLD");
   });
 
@@ -371,7 +374,7 @@ describe("F1 ledger: every page, correct-amount NGN only", () => {
     ctx.paystack.setTxn({ reference: "ref-short", status: "success", amount_kobo: 100, paid_at: "2026-10-21T10:00:00.000Z", gateway_response: "Successful", metadata: { unit_id: "T-4", topup_ngn: 10000, quote_token: "tok" } });
     const opts = options(await findPhones(ctx.deps, { quote_token: token, max_topup_ngn: 60000 }));
     assert.deepEqual(opts.map((o) => o.unit_id), ["T-4", "T-5", "T-2"]);
-    const c = await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-4", find_my_off: true });
+    const c = await createCheckout(ctx.deps, { quote_token: token, offer_token: await offerFor(ctx, token, "T-4"), find_my_off: true });
     assert.ok(!("error" in c), JSON.stringify(c));
   });
 
@@ -429,16 +432,18 @@ describe("F2 confirm_payment: only a true not-found is UNKNOWN_REFERENCE", () =>
 describe("F5 create_checkout: Find My guard", () => {
   test("find_my_off false is FIND_MY_ON and makes no Paystack call", async () => {
     const { ctx, token } = await tinyQuote();
-    const r = await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: false });
+    const offer_token = await offerFor(ctx, token, "T-2");
+    const lists = ctx.paystack.listCalls; // find_phones read the ledger already
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token, find_my_off: false });
     assert.equal("error" in r && r.error, "FIND_MY_ON");
     assert.equal(ctx.paystack.initializeCalls.length, 0);
-    assert.equal(ctx.paystack.listCalls, 0);
+    assert.equal(ctx.paystack.listCalls, lists);
     assert.equal(ctx.paystack.verifyCalls.length, 0);
   });
 
   test("find_my_off true proceeds to a checkout", async () => {
     const { ctx, token } = await tinyQuote();
-    const c = checkout(await createCheckout(ctx.deps, { quote_token: token, unit_id: "T-2", find_my_off: true }));
+    const c = checkout(await createCheckout(ctx.deps, { quote_token: token, offer_token: await offerFor(ctx, token, "T-2"), find_my_off: true }));
     assert.equal(c.topup_ngn, 30000);
   });
 });

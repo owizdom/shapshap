@@ -175,7 +175,7 @@ describe("numbers are whole naira, plausible, and floors are multiples of 1,000"
         const fp = (await findPhones(ctx.deps, { quote_token: v.quote_token, max_topup_ngn: 10_000_000 })) as { options: PhoneOption[] };
         for (const o of fp.options) assert.ok(Number.isInteger(o.topup_ngn), `${ctxt} topup ${o.topup_ngn}`);
         if (fp.options.length > 0) {
-          const c = await createCheckout(ctx.deps, { quote_token: v.quote_token, unit_id: fp.options[0].unit_id, find_my_off: true });
+          const c = await createCheckout(ctx.deps, { quote_token: v.quote_token, offer_token: fp.options[0].offer_token, find_my_off: true });
           assert.ok(!("error" in c), JSON.stringify(c));
           const call = ctx.paystack.initializeCalls.at(-1)!;
           assert.ok(Number.isInteger(call.amount_kobo), `${ctxt} kobo ${call.amount_kobo}`);

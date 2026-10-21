@@ -1,5 +1,8 @@
 // Shared test helpers: fake Paystack, deterministic clock, catalogs.
+import { createHmac } from "node:crypto";
 import { PaystackUnavailable } from "../src/types.ts";
+import { findPhones } from "../src/tools.ts";
+import { readQuote } from "../src/quote.ts";
 import type {
   Catalog, CheckoutMetadata, Deps, PaystackClient, PaystackTxn,
 } from "../src/types.ts";
@@ -147,4 +150,36 @@ export function paginatedApi(all: ApiTxn[]) {
     return j({ status: false, message: "unexpected " + url }, 500);
   }) as unknown as typeof fetch;
   return { f, urls };
+}
+
+// ---- Price lock helpers ----
+export const b64u = (s: string) => Buffer.from(s, "utf8").toString("base64url");
+
+// Signs an offer by hand, exactly as the contract in src/types.ts describes (prefix is overridable to test forgeries).
+export function signOfferRaw(
+  payload: { v: 1; unit_id: string; price_ngn: number; topup_ngn: number; quote_sig: string; exp: number },
+  secret = SECRET, prefix = "offer.",
+): string {
+  const body = b64u(JSON.stringify(payload));
+  return body + "." + createHmac("sha256", secret).update(prefix + body).digest("base64url");
+}
+
+// An offer for a unit the way a customer gets one: from find_phones. Throws if the unit is not offered.
+export async function offerFor(ctx: TestCtx, quote_token: string, unit_id: string): Promise<string> {
+  const q = readQuote(quote_token, ctx.deps.secret, ctx.deps.now());
+  if (typeof q === "string") throw new Error("bad quote " + q);
+  const unit = ctx.deps.catalog.stock.find((u) => u.unit_id === unit_id);
+  if (!unit) throw new Error("no such unit " + unit_id);
+  const r = await findPhones(ctx.deps, { quote_token, max_topup_ngn: Math.max(unit.price_ngn - q.value_ngn, 0) });
+  if ("error" in r) throw new Error("find_phones: " + r.error);
+  const o = r.options.find((x) => x.unit_id === unit_id);
+  if (!o) throw new Error(`find_phones did not offer ${unit_id}`);
+  return o.offer_token;
+}
+
+// A correctly signed offer without going through find_phones (for units find_phones would hide, e.g. sold ones).
+export function forgeOffer(quote_token: string, unit_id: string, price_ngn: number, topup_ngn: number): string {
+  const [body, sig] = quote_token.split(".");
+  const exp = JSON.parse(Buffer.from(body, "base64url").toString()).exp as number;
+  return signOfferRaw({ v: 1, unit_id, price_ngn, topup_ngn, quote_sig: sig, exp });
 }
