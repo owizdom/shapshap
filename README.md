@@ -1,12 +1,14 @@
-# SharpSharp
+# ShapShap
 
-Role: Forward-deployed Engineering first, Technical Product Management second.
+Role: Forward-deployed Engineering.
 
-Ziggatech, an iPhone store in Ikeja, Lagos, takes used iPhones as credit toward an upgrade and sends trade-ins to WhatsApp. Its calculator asks one yes or no about charging, cameras, audio, Face ID and signal, and "No" drops an iPhone 16 Plus 256GB from ₦724,681 to ₦217,404. SharpSharp prices the actual fault from the owner's Google Sheet, so a faulty phone still becomes a paid upgrade, settled on Paystack in the same chat. I left out cash-only sales, home pickup, repairs, Android and Ziggatech's real stock system; this demo is not affiliated with Ziggatech and runs on test data.
+Ziggatech, an iPhone store in Lagos, takes old iPhones as part-payment, but its website offers 70% less for any phone that is not fully working. That is ₦507,277 off an iPhone 16 Plus with a broken camera, which Ziggatech's own repair desk fixes for ₦228,150. ShapShap prices the actual fault on WhatsApp from the store's own repair prices and takes the balance on Paystack, without costing the store its margin. I deliberately left out what needs hands or the store's systems: the pickup inspection, cash payouts and live stock.
 
 ![Ziggatech's calculator: one yes or no for every functional fault](assets/problem/1-ziggatech-calculator.png)
 
-![SharpSharp in the WhatsApp simulator: the customer's description becomes an itemised valuation](assets/problem/2-sharpsharp-valuation.png)
+![ShapShap in the WhatsApp simulator: the customer's description becomes an itemised valuation](assets/problem/2-sharpsharp-valuation.png)
+
+A demo, not affiliated with Ziggatech. Every phone, price and payment in it is test data.
 
 ## How to run
 
