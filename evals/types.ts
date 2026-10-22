@@ -1,4 +1,4 @@
-// Shared types for the SharpSharp conversation eval harness. Erasable TypeScript only.
+// Shared types for the ShapShap conversation eval harness. Erasable TypeScript only.
 
 // One step as Chord reports it in the chat response (docs: chat.txt, section 4).
 export interface Step {

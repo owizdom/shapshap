@@ -3,7 +3,7 @@
 import { SCENARIOS } from "./scenarios.ts";
 import type { ChatResponse, ChordClient, Step } from "./types.ts";
 
-const P = "mcp__SharpSharp_tools__";
+const P = "mcp__ShapShap_tools__";
 const n = (v: number) => `₦${v.toLocaleString("en-US")}`;
 const j = (v: unknown) => JSON.stringify(v);
 

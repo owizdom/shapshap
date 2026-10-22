@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 
-const skill = readFileSync(fileURLToPath(new URL("../../skills/sharpsharp/SKILL.md", import.meta.url)), "utf8");
+const skill = readFileSync(fileURLToPath(new URL("../../skills/shapshap/SKILL.md", import.meta.url)), "utf8");
 // Read faults.csv directly so these tests depend on the data and the skill only, not on the parser.
 const rows = readFileSync(fileURLToPath(new URL("../data/faults.csv", import.meta.url)), "utf8").trim().split(/\r?\n/).slice(1);
 const catalog = { faults: rows.map((l) => ({ fault: l.split(",")[0], action: /,(deduct|inspect|refuse),\d+,/.exec(l)![1] })) };

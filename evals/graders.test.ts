@@ -4,7 +4,7 @@ import { GRADERS, affirmsFindMyOff, extractAmounts, gradeTranscript, isTool, too
 import { SCENARIOS } from "./scenarios.ts";
 import type { Step, Transcript, TurnRecord } from "./types.ts";
 
-const P = "mcp__SharpSharp_tools__";
+const P = "mcp__ShapShap_tools__";
 const step = (tool: string, instruction: unknown, result: unknown): Step => ({
   title: tool, tool_name: P + tool, success: true, latency_ms: 10,
   instruction: typeof instruction === "string" ? instruction : JSON.stringify(instruction),
@@ -20,8 +20,8 @@ const VAL = step("value_trade_in", { model: "iPhone 13", capacity_gb: 128, fault
 const PH = step("find_phones", { max_topup_ngn: 350000 }, { options: [{ price_ngn: 420000, topup_ngn: 300000 }] });
 
 test("tool names match on the suffix", () => {
-  assert.equal(toolSuffix("mcp__SharpSharp_tools__value_trade_in"), "value_trade_in");
-  assert.ok(isTool({ tool_name: "mcp__SharpSharp_tools__find_phones" }, "find_phones"));
+  assert.equal(toolSuffix("mcp__ShapShap_tools__value_trade_in"), "value_trade_in");
+  assert.ok(isTool({ tool_name: "mcp__ShapShap_tools__find_phones" }, "find_phones"));
   assert.ok(!isTool({ tool_name: "rag__retrieve" }, "find_phones"));
 });
 
@@ -194,13 +194,13 @@ test("reserved_gate: 'Your phone is reserved' without confirm_payment still fail
   assert.equal(GRADERS.reserved_gate({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
 });
 test("valuation_before_phones: a re-run of both tools followed by a checkout link (no phone list) passes", () => {
-  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const steps = [{ tool_name: "mcp__ShapShap_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__ShapShap_tools__find_phones", result: "{}" }];
   const tr = { scenario: "x", turns: [{ customer: "take 1", reply: "Your link don ready: https://checkout.paystack.com/x\nAmount to pay: ₦22,000", steps }] } as any;
   assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, true);
 });
 
 test("valuation_before_phones: a confirmation turn naming one chosen phone before the value is not a list", () => {
-  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const steps = [{ tool_name: "mcp__ShapShap_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__ShapShap_tools__find_phones", result: "{}" }];
   const tr = { scenario: "x", turns: [{ customer: "take 1", reply: "Your choice: iPhone 16 Plus 128GB, grade A. You add ₦22,000\nValue of your old phone: ₦793,000\nPay here: https://checkout.paystack.com/x", steps }] } as any;
   assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, true);
 });
@@ -213,13 +213,13 @@ for (const reply of ["Payment confirmed! I've reserved the iPhone 16 Plus for yo
   });
 }
 test("valuation_before_phones: a '- ' bulleted phone list before the value line fails", () => {
-  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const steps = [{ tool_name: "mcp__ShapShap_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__ShapShap_tools__find_phones", result: "{}" }];
   const reply = "- iPhone 16 Plus 128GB, grade A, 6 months warranty. You add ₦22,000\n- Value of your phone: ₦793,000";
   const tr = { scenario: "x", turns: [{ customer: "x", reply, steps }] } as any;
   assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
 });
 test("valuation_before_phones: a phone list with no valuation at all fails", () => {
-  const steps = [{ tool_name: "mcp__SharpSharp_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__SharpSharp_tools__find_phones", result: "{}" }];
+  const steps = [{ tool_name: "mcp__ShapShap_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__ShapShap_tools__find_phones", result: "{}" }];
   const tr = { scenario: "x", turns: [{ customer: "x", reply: "- iPhone 16 Plus 128GB, grade A. You add ₦22,000", steps }] } as any;
   assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
 });

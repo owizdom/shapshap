@@ -11,7 +11,7 @@ function reply(result: object) {
 }
 
 export function buildServer(deps: Deps): McpServer {
-  const server = new McpServer({ name: "sharpsharp", version: "0.1.0" });
+  const server = new McpServer({ name: "shapshap", version: "0.1.0" });
 
   server.registerTool("value_trade_in", {
     description: "Values a customer's iPhone for trade-in from the shop's price list and returns a signed quote with the deduction working. It may refuse a phone outright (FAULT_NOT_BOUGHT) and may mark some faults as provisional (inspect_faults), to be confirmed at the pickup inspection. It prices the phone the way the shop's website calculator does: optional screen, body, battery and parts condition (defaults: light wear, light wear, healthy, genuine; pass them only when the customer states them), and named faults deducted on top. The condition used is returned. All figures are exact naira, not rounded. Call it first, and quote the customer only the figures it returns.",

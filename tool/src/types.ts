@@ -1,4 +1,4 @@
-// Seam contract for the SharpSharp tool server (spec 0001 rev 3, section 4).
+// Seam contract for the ShapShap tool server (spec 0001 rev 3, section 4).
 // Tests and implementation both import from here. Erasable TypeScript only.
 
 // ---- Data rows (tool/data/*.csv) ----

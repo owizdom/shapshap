@@ -1,6 +1,6 @@
 // Deterministic graders. Each returns {pass, detail}. They grade what the customer saw
 // and the end state of the tool calls, not the exact path. Tool names are matched on the
-// suffix because Chord reports them as "mcp__SharpSharp_tools__value_trade_in".
+// suffix because Chord reports them as "mcp__ShapShap_tools__value_trade_in".
 import type { Check, GradeCtx, GradeResult, Grader, Scenario, Step, Transcript, TurnRecord } from "./types.ts";
 
 export const DEFAULT_CHECKS: Check[] = [
