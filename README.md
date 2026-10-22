@@ -6,6 +6,8 @@ Ziggatech, an iPhone store in Lagos, takes old iPhones as part-payment, but its 
 
 ![Ziggatech's calculator: one yes or no for every functional fault](assets/problem/1-ziggatech-calculator.png)
 
+The cut is in the calculator's own code on [ziggatech.com/pages/iphone-funnel](https://ziggatech.com/pages/iphone-funnel): `const funcMult = selections.functional === 'no' ? 0.3 : 1.0;`. Its FAQ says Ziggatech deducts the repair cost, but that answer covers cracked screens only.
+
 ![ShapShap in the WhatsApp simulator: the customer's description becomes an itemised valuation](assets/problem/2-shapshap-valuation.png)
 
 A demo, not affiliated with Ziggatech. Every phone, price and payment in it is test data.
