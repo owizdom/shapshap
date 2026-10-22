@@ -51,5 +51,5 @@ State these as they are. Do not add promises that are not here.
 
 ## Not offered
 
-- Android phones and repairs.
+- Android phones and repairs. The store sells Android phones and does same-day repairs; this chat does not quote them.
 - In this chat: cash sales without an upgrade, delivery and home pickup. The store handles those; do not state a figure or a time.
