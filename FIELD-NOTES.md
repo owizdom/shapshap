@@ -31,28 +31,31 @@ Chord's chat docs say each call loads "the most recent 30 turns". They do not sa
 
 Keep tool results, or a one-line summary of each, in the context of later turns. If not, state what "the most recent 30 turns" includes. Four skill versions, `v5` to `v8`, went into working around this.
 
-## 2. The in-app chat does not show what WhatsApp shows
+## 2. A reply with a payment link never reached the chat
 
 #### What happened
 
-- In the simulator the pickup code arrived as `**888752**`, asterisks visible.
-- In Chord's in-app chat, Markdown bold shows as bold and single line breaks are merged.
-- The in-app chat accepts photos. The simulator has a text box only.
+In the simulator on skill `v14`, I wrote "Yes, Find My is off." The chat showed typing, then "No reply yet. If someone has taken over in Chord, their reply will appear here." Nobody had taken over.
 
-![Simulator: Markdown bold arrives as literal asterisks](assets/field-notes/2-simulator-asterisks.png)
+![Simulator: no reply after the Find My answer](assets/field-notes/2-reply-lost.png)
 
 #### How I found the cause
 
-Chord's chat docs define the reply as "The answer text. Markdown." WhatsApp bold uses one asterisk, so two asterisks show as typed.
+- Vercel logs show the tool called three times at 12:35:43, 12:35:47 and 12:35:53 UTC.
+- Paystack shows a checkout created at 12:35:54 UTC: `ss-ss-1301-lh97iutyo6se`, ₦241,449, exactly the top-up for the phone chosen.
+- I wrote "Hello? I didn't get the payment link." The agent answered "Sorry about that. Here is the link again" with the same order ref.
+
+So Chord produced and kept the reply, and the simulator never showed it. I could not read the thread to confirm: `GET /v1/threads` returned 403 "Missing required permission: thread:read", and `GET /v1/teammates/{id}/conversations` returned 500 (request `9068cc44-a3d8-46b2-82f7-41be99641779`).
+
+![Simulator: the agent resends the same link and order ref](assets/field-notes/2-reply-resent.png)
 
 #### Fix
 
-- `v6`: each list item on its own `- ` line.
-- `v7`: plain text only, no Markdown.
+None on my side; the customer asked again. Note 1's `v7` change made the retry safe: the order ref lives in the chat text, so the agent resent the same checkout instead of creating a second one.
 
 #### What I'd change in Chord
 
-Convert Markdown to WhatsApp formatting on the WhatsApp channel and in the simulator, or add a WhatsApp preview to the in-app chat. State in the docs which surfaces accept images.
+Show the partner chat a delivery status for every turn, and retry a reply that was produced but not delivered. Say in the API key docs which scopes reading a conversation needs, and fix the 500 on the conversations endpoint.
 
 ## 3. The owner's Sheet returned two prices for six minutes
 
