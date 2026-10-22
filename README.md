@@ -21,15 +21,9 @@ ShapShap is a Chord teammate with one skill (`skills/shapshap`) and one custom t
 
 Prices, faults and stock come from the owner's Google Sheet, with `tool/data` as the fallback. Paystack is the record of sales, so there is no database. [FIELD-NOTES.md](FIELD-NOTES.md) covers what broke; [GO-LIVE.md](GO-LIVE.md) is the note for the store owner.
 
-## The skill, and the research behind it
+## The skill
 
-`skills/shapshap/SKILL.md` holds the rules, how a chat goes, the 34 fault keys and the persona; `references/faults.md` gives each fault a self-check and the ways Lagos customers describe it; `references/policy.md` holds the store's policy. The fault list comes from Apple's support pages and Lagos repair listings. Seven papers on instructions for tool-using agents shaped how it is written:
-
-- Rules first, checked again at the end. Models follow early instructions best ([Jaroslawicz et al., 2025](https://arxiv.org/abs/2507.11538)) and use the middle of a long context worst ([Liu et al., 2023](https://arxiv.org/abs/2307.03172)), so the never-break rules open the skill and a short check closes it.
-- Rules that go against common sense live in code too. Agents skip exactly those ([Yao et al., 2024](https://arxiv.org/abs/2406.12045)), and guard code beat prompt reminders ([Zwerdling et al., 2025](https://aclanthology.org/2025.emnlp-industry.41.pdf)). Prices are set and signed by the server, and checkout refuses without Find My off.
-- Exact steps for what the customer does. Guiding a user who must act costs agents 18 to 25 points ([Barres et al., 2025](https://arxiv.org/abs/2506.07982)), so turning off Find My and paying come as copyable steps.
-- No example values that look real. Agents copy them into tool calls ([Balaji et al., 2026](https://arxiv.org/abs/2601.00596)), so the skill's examples use bracketed placeholders.
-- Warm in words, firm in figures. Warmth made models agree with false claims more often, most with upset users ([Ibrahim et al., 2025](https://arxiv.org/abs/2507.21919)), so the persona never moves a price.
+`skills/shapshap/SKILL.md` holds the rules, how a chat goes, the 34 fault keys and the persona; `references/faults.md` gives each fault a self-check and the ways Lagos customers describe it; `references/policy.md` holds the store's policy. The fault list comes from Apple's support pages and Lagos repair listings.
 
 ## How to run
 
@@ -53,7 +47,7 @@ Conversation evals: `node evals/run.ts --dry` uses a fake Chord and spends no re
 
 ## How I used AI tools
 
-I designed and directed ShapShap, and built it with Claude Code. I picked the business and the problem, set the requirements and worked spec first: for each major change I approved a written spec with acceptance tests before any code, the tests were written to fail first, and a separate reviewer checked the result against the spec and Ziggatech's live pages. Claude did most of the research and wrote the code, the tests and first drafts of these documents. I made the product calls, ran the production deploys and made the in-browser Paystack test payments. The reviews caught real errors, such as one phone sold twice and a price lock that held for one turn only.
+I designed and directed ShapShap, and built it with Claude Code. I picked the business and the problem, set the requirements and worked spec first: for each major change I approved a written spec with acceptance tests before any code, the tests were written to fail first, and a separate reviewer checked the result against the spec and Ziggatech's live pages. I did the research, using Claude to search and read the sources: Ziggatech's pages and the Paystack and Chord docs. Claude wrote the code, the tests and first drafts of these documents. I made the product calls, ran the production deploys and made the in-browser Paystack test payments. The reviews caught real errors, such as one phone sold twice and a price lock that held for one turn only.
 
 ## What stopped me
 
