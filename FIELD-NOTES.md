@@ -39,7 +39,7 @@ Chord's chat docs say each call loads "the most recent 30 turns". They do not sa
 - `v7`: write `Order ref: [reference]` into the checkout message and confirm payment from that line. In the next simulator run, "paid" got pickup code `294036` with no reference asked for (Paystack `ss-ss-1501-ub3jg01s1wls`).
 - `v8`: never check out an amount the customer has not seen. The offer signed on one turn is replaced on the next, so the price lock covers one turn.
 
-Result, counted from the saved eval transcripts (the scenario mix differs between runs): on `v3` and `v4`, 4 of 11 later replies apologised for tool figures, such as "Sorry about the mix-up earlier". From `v5` on, 0 of 27 did.
+Result, counted from the saved eval transcripts (the scenario mix differs between runs): on `v3` and `v4`, 4 of 11 later replies apologised for tool figures, such as "Sorry about the mix-up earlier". On `v5` to `v14`, 0 of 27 did.
 
 #### What I'd change in Chord
 

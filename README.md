@@ -34,7 +34,7 @@ Node 22.18 or later, and the Vercel CLI, logged in. Copy `.env.example` to `.env
 ```
 cd tool
 npm install
-npm test               # 284 tests, no network
+npm test               # 58 tests, no network
 vercel link            # creates or links the Vercel project
 vercel deploy --prod   # after setting the .env variables for Production in Vercel
 ```
