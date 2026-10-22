@@ -1,8 +1,8 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { signQuote, readQuote, signOffer, readOffer } from "./quote.ts";
-import { MAX_DEDUCTION_PCT, PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
+import { CONDITION, DEFAULT_CONDITION, PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
 import type {
-  Adjustment, ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, ValueTradeInResult,
+  Adjustment, Condition, ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, ValueTradeInArgs, ValueTradeInResult,
 } from "./types.ts";
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -29,9 +29,7 @@ export function pickupCode(reference: string, secret: string): string {
   return String(h.readUInt32BE(0) % 1_000_000).padStart(6, "0");
 }
 
-export async function valueTradeIn(
-  deps: Deps, args: { model: string; capacity_gb: number; faults: string[] },
-): Promise<ValueTradeInResult> {
+export async function valueTradeIn(deps: Deps, args: ValueTradeInArgs): Promise<ValueTradeInResult> {
   const { catalog } = deps;
   const m = normModel(args.model);
   const models = catalog.prices.filter((p) => normModel(p.model) === m);
@@ -42,41 +40,52 @@ export async function valueTradeIn(
     return { error: "CAPACITY_UNKNOWN", detail: `No ${models[0].model} price for ${args.capacity_gb} GB. Known capacities: ${caps} GB. Ask the customer which of these they have.` };
   }
   const unique = [...new Set(args.faults)].sort();
-  const deductions = [];
-  const inspect_faults = [];
   for (const id of unique) {
     const f = catalog.faults.find((x) => x.fault === id);
     if (!f) return { error: "UNKNOWN_FAULT", detail: `Unknown fault "${id}". Use only the fault ids from the shop list, or leave faults empty.` };
     if (f.action === "refuse") return { error: "FAULT_NOT_BOUGHT", detail: `We cannot buy a phone with this fault: ${f.label} (${f.fault}). Tell the customer plainly; do not give a figure.` };
   }
-  for (const id of unique) {
+  const condition: Condition = {
+    screen: args.screen ?? DEFAULT_CONDITION.screen, body: args.body ?? DEFAULT_CONDITION.body,
+    battery: args.battery ?? DEFAULT_CONDITION.battery, parts: args.parts ?? DEFAULT_CONDITION.parts,
+  };
+  // Same formula as the website calculator; rounded once, at the end.
+  const wExact = row.base_ngn
+    * (CONDITION.screenWeight * CONDITION.screen[condition.screen] + CONDITION.bodyWeight * CONDITION.body[condition.body])
+    * CONDITION.battery[condition.battery] * CONDITION.parts[condition.parts];
+  const W = Math.round(wExact);
+  const siteNo = Math.round(wExact * CONDITION.notWorking);
+  const deductions = [];
+  const inspect_faults = [];
+  for (const id of [...new Set(args.faults)]) {
     const f = catalog.faults.find((x) => x.fault === id)!;
-    deductions.push({ fault: f.fault, label: f.label, ngn: Math.round((row.base_ngn * f.deduct_pct) / 100) });
+    const repair = f.repair === "screen" ? row.screen_repair_ngn : f.repair === "camera" ? row.camera_repair_ngn : null;
+    deductions.push({ fault: f.fault, label: f.label, ngn: Math.max(Math.round((W * f.deduct_pct) / 100), repair ?? 0) });
     if (f.action === "inspect") inspect_faults.push({ fault: f.fault, label: f.label });
   }
   const adjustments: Adjustment[] = [];
-  let total = deductions.reduce((s, d) => s + d.ngn, 0);
-  const capLimit = Math.round((row.base_ngn * MAX_DEDUCTION_PCT) / 100);
-  if (total > capLimit) {
-    adjustments.push({ label: `Deductions capped at ${MAX_DEDUCTION_PCT}% of base`, ngn: total - capLimit });
-    total = capLimit;
+  if (W !== row.base_ngn) {
+    adjustments.push({
+      label: `Condition: screen ${condition.screen}, body ${condition.body}, battery ${condition.battery}, parts ${condition.parts}`,
+      ngn: W - row.base_ngn,
+    });
   }
-  const raw = row.base_ngn - total;
-  const rounded = Math.floor(raw / 1000) * 1000;
-  let value_ngn = rounded;
-  if (rounded < row.floor_ngn) {
+  let value_ngn = W - deductions.reduce((s, d) => s + d.ngn, 0);
+  if (unique.length > 0 && siteNo > value_ngn) {
+    adjustments.push({ label: "Raised to our website quote for a faulty phone", ngn: siteNo - value_ngn });
+    value_ngn = siteNo;
+  }
+  if (row.floor_ngn > value_ngn) {
+    adjustments.push({ label: "Minimum we pay for this model", ngn: row.floor_ngn - value_ngn });
     value_ngn = row.floor_ngn;
-    adjustments.push({ label: "Minimum we pay for this model", ngn: row.floor_ngn - raw });
-  } else if (rounded < raw) {
-    adjustments.push({ label: "Rounded down to the nearest 1,000", ngn: rounded - raw });
   }
   const iat = deps.now();
   const exp = iat + QUOTE_TTL_MS;
   const quote_token = signQuote(
-    { v: 1, model: row.model, capacity_gb: row.capacity_gb, faults: unique, value_ngn, iat, exp }, deps.secret,
+    { v: 1, model: row.model, capacity_gb: row.capacity_gb, faults: unique, condition, value_ngn, iat, exp }, deps.secret,
   );
   return {
-    quote_token, model: row.model, capacity_gb: row.capacity_gb, base_ngn: row.base_ngn,
+    quote_token, model: row.model, capacity_gb: row.capacity_gb, base_ngn: row.base_ngn, condition,
     deductions, adjustments, value_ngn, valid_until: new Date(exp).toISOString(), inspect_faults,
   };
 }

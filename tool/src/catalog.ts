@@ -72,6 +72,13 @@ export function dataRowCount(text: string): number {
 const MIN_NGN = 10_000, MAX_NGN = 5_000_000;
 const inRange = (n: number) => n >= MIN_NGN && n <= MAX_NGN;
 
+// Blank or missing -> null (not published); a filled cell must be in range, otherwise NaN.
+function optionalNgn(s: string | undefined): number | null {
+  if ((s ?? "").trim() === "") return null;
+  const n = num(s);
+  return inRange(n) ? n : NaN;
+}
+
 export function parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems: string[] } {
   const problems: string[] = [];
   const prices: PriceRow[] = [];
@@ -84,10 +91,13 @@ export function parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems:
     if (!(capacity_gb > 0)) return void problems.push(`${where}: capacity_gb must be a whole number above 0, row skipped`);
     if (!inRange(base_ngn)) return void problems.push(`${where}: base_ngn must be a whole naira amount from 10,000 to 5,000,000, row skipped`);
     if (!(floor_ngn >= 0 && floor_ngn <= base_ngn && floor_ngn % 1000 === 0)) return void problems.push(`${where}: floor_ngn must be a whole multiple of 1,000 between 0 and base_ngn, row skipped`);
+    const screen_repair_ngn = optionalNgn(r.screen_repair_ngn), camera_repair_ngn = optionalNgn(r.camera_repair_ngn);
+    if (Number.isNaN(screen_repair_ngn)) return void problems.push(`${where}: screen_repair_ngn must be blank or a whole naira amount from 10,000 to 5,000,000, row skipped`);
+    if (Number.isNaN(camera_repair_ngn)) return void problems.push(`${where}: camera_repair_ngn must be blank or a whole naira amount from 10,000 to 5,000,000, row skipped`);
     const key = `${model.toLowerCase()}|${capacity_gb}`;
     if (seenPrice.has(key)) return void problems.push(`${where}: duplicate of an earlier row, row skipped`);
     seenPrice.add(key);
-    prices.push({ model, capacity_gb, base_ngn, floor_ngn });
+    prices.push({ model, capacity_gb, base_ngn, floor_ngn, screen_repair_ngn, camera_repair_ngn });
   });
 
   const faults: FaultRow[] = [];
@@ -102,11 +112,14 @@ export function parseCatalog(texts: CatalogTexts): { catalog: Catalog; problems:
     const blank = (r.deduct_pct ?? "").trim() === "";
     const deduct_pct = blank && action === "refuse" ? 100 : num(r.deduct_pct, true);
     if (!(deduct_pct >= 0 && deduct_pct <= 100)) return void problems.push(`${where}: deduct_pct must be a whole number between 0 and 100, row skipped`);
+    const repair = (r.repair ?? "").trim().toLowerCase();
+    if (repair !== "" && repair !== "screen" && repair !== "camera") return void problems.push(`${where}: repair must be screen, camera or blank, row skipped`);
     if (seenFault.has(fault)) return void problems.push(`${where}: duplicate of an earlier row, row skipped`);
     seenFault.add(fault);
     faults.push({
       fault, label: r.label ?? "", category: r.category ?? "", action, deduct_pct,
       check_hint: r.check_hint ?? "", basis: (r.basis ?? "").toLowerCase() === "sourced" ? "sourced" : "policy",
+      repair,
     });
   });
 

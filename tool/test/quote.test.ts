@@ -3,12 +3,13 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { signQuote, readQuote } from "../src/quote.ts";
 import { valueTradeIn, findPhones, createCheckout } from "../src/tools.ts";
-import { QUOTE_TTL_MS } from "../src/types.ts";
+import { DEFAULT_CONDITION, QUOTE_TTL_MS } from "../src/types.ts";
 import type { QuotePayload, Valuation } from "../src/types.ts";
-import { NOW, SECRET, makeCtx, tinyCatalog } from "./fakes.ts";
+import { FLAWLESS, NOW, SECRET, makeCtx, tinyCatalog } from "./fakes.ts";
 
 const payload: QuotePayload = {
   v: 1, model: "Test Phone", capacity_gb: 128, faults: ["a", "b"],
+  condition: DEFAULT_CONDITION,
   value_ngn: 75000, iat: NOW, exp: NOW + QUOTE_TTL_MS,
 };
 
@@ -26,6 +27,11 @@ describe("quote token", () => {
     assert.deepEqual(JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8")), payload);
     assert.match(parts[1], /^[A-Za-z0-9_-]+$/);
     assert.deepEqual(readQuote(t, SECRET, NOW), payload);
+  });
+
+  test("the condition is part of the signed payload and survives the round trip", () => {
+    const p2: QuotePayload = { ...payload, condition: { screen: "cracked", body: "visible", battery: "worn", parts: "one" } };
+    assert.deepEqual(readQuote(signQuote(p2, SECRET), SECRET, NOW), p2);
   });
 
   test("a different secret does not verify", () => {
@@ -69,7 +75,7 @@ describe("quote token", () => {
 describe("B3 every tool that takes a token refuses bad ones", () => {
   async function goodToken() {
     const ctx = makeCtx(tinyCatalog());
-    const r = (await valueTradeIn(ctx.deps, { model: "Test Phone", capacity_gb: 128, faults: [] })) as Valuation;
+    const r = (await valueTradeIn(ctx.deps, { model: "Test Phone", capacity_gb: 128, faults: [], ...FLAWLESS })) as Valuation;
     return { ctx, token: r.quote_token };
   }
 

@@ -7,7 +7,7 @@ import { parseCatalog } from "../src/catalog.ts";
 import { sheetCatalogLoader } from "../src/sheet.ts";
 import { valueTradeIn, findPhones, createCheckout } from "../src/tools.ts";
 import type { Catalog, SheetUrls, Valuation, PhoneOption } from "../src/types.ts";
-import { makeCtx, tinyCatalog } from "./fakes.ts";
+import { FLAWLESS, makeCtx, tinyCatalog } from "./fakes.ts";
 
 const PRICES = "model,capacity_gb,base_ngn,floor_ngn\n";
 const FAULTS = "fault,label,category,action,deduct_pct,check_hint,basis\n";
@@ -410,14 +410,14 @@ describe("floor adjustment is never negative and only labelled when positive", (
 
   test("a lifted value carries exactly one positive floor adjustment equal to floor minus the pre-floor value", async () => {
     const { catalog } = parseCatalog({ prices: PRICES + "Lift Phone,128,100000,90000\n", faults: FAULTS + "f50,F,m,deduct,50,x,policy\n", stock: STOCK });
-    const v = (await valueTradeIn(makeCtx(catalog).deps, { model: "Lift Phone", capacity_gb: 128, faults: ["f50"] })) as Valuation;
+    const v = (await valueTradeIn(makeCtx(catalog).deps, { model: "Lift Phone", capacity_gb: 128, faults: ["f50"], ...FLAWLESS })) as Valuation;
     assert.equal(v.value_ngn, 90000);
     assert.deepEqual(v.adjustments, [{ label: FLOOR, ngn: 40000 }]);
   });
 
   test("a value above the floor has no floor adjustment", async () => {
     const { catalog } = parseCatalog({ prices: PRICES + "Plain Phone,128,100000,20000\n", faults: FAULTS + "f10,F,m,deduct,10,x,policy\n", stock: STOCK });
-    const v = (await valueTradeIn(makeCtx(catalog).deps, { model: "Plain Phone", capacity_gb: 128, faults: ["f10"] })) as Valuation;
+    const v = (await valueTradeIn(makeCtx(catalog).deps, { model: "Plain Phone", capacity_gb: 128, faults: ["f10"], ...FLAWLESS })) as Valuation;
     assert.equal(v.value_ngn, 90000);
     assert.equal(v.adjustments.some((a) => a.label === FLOOR), false);
   });

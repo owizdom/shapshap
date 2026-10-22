@@ -1,42 +1,35 @@
-fault,label,category,action,deduct_pct,check_hint,basis
-charging_port,Charges only with wiggling or one cable; wireless charging works,power,deduct,5,Try two cables and a wall socket; does wireless or MagSafe charging work?,sourced
-charging_ic,Does not charge with any cable or wirelessly,power,inspect,20,"30 min on a wall socket with two cables, then force restart",policy
-no_power,Does not turn on,power,inspect,60,"Charge one hour, then volume up, volume down, hold side button",policy
-boot_loop,Stuck on Apple logo or restarts by itself,power,inspect,40,Does it pass the Apple logo and reach the lock screen?,policy
-screen_cracked,Screen glass cracked but works,screen,deduct,20,Picture and touch work in every corner?,sourced
-screen_dead,Screen black or not responding to touch,screen,deduct,25,Does it ring or vibrate while the screen stays black?,sourced
-display_lines,Lines green line flicker or tint on screen,screen,deduct,20,Open a plain white page; any line or tint?,sourced
-oled_burn_in,Faint ghost image stays on screen,screen,deduct,10,Plain grey image at full brightness; any keyboard or bar outline?,policy
-touch_fault,Ghost touch or dead touch area,screen,deduct,20,Drag a jiggling app icon to every corner; does it drop?,sourced
-aftermarket_screen,Display shows Unknown or True Tone missing,repair_history,deduct,15,Settings > General > About > Parts and Service History; Settings > Display & Brightness > True Tone,policy
-battery_service,Battery health below 80% or Service,battery,deduct,10,Settings > Battery > Battery Health > Maximum Capacity,sourced
-battery_not_genuine,Battery shows Unknown or Unable to verify,repair_history,deduct,10,Settings > Battery > Battery Health; Parts and Service History,sourced
-battery_swollen,Screen or back lifting from battery,battery,inspect,15,Does the screen lift at an edge or the phone rock on a table?,policy
-battery_boosted,Battery health reading may be faked,repair_history,inspect,0,Read cycle count and date of first use in Battery Health (iPhone 15 and later),policy
-face_id,Face ID not working or not available,camera,deduct,25,Settings > Face ID & Passcode > Set Up Face ID,sourced
-rear_camera,Rear camera black blurry or shaking,camera,deduct,10,Open Camera; try every zoom; any black blur or buzzing?,sourced
-front_camera,Selfie camera black or blurry,camera,deduct,10,Switch to selfie camera and take a photo; then test Face ID,sourced
-camera_lens_cracked,Glass over rear camera cracked,camera,deduct,5,Look at the glass rings over the rear lenses,sourced
-flashlight,Flashlight does not work,camera,deduct,5,Control Center > Flashlight,policy
-back_glass,Back glass cracked,body,deduct,10,"Any crack on the back, even small?",sourced
-frame_dents,Dents or deep scratches on metal frame,body,deduct,8,Run a finger along the edges and corners,sourced
-bent_housing,Phone is bent,body,inspect,30,Lay it screen-down on a flat table; does it rock?,policy
-buttons,Power volume or Action/mute button fault,body,deduct,5,"Press each button; does the volume bar, lock or silent icon show?",policy
-loudspeaker,Loudspeaker silent or crackling,audio,deduct,5,Settings > Sounds & Haptics; drag the ringtone slider,sourced
-earpiece,Cannot hear callers at the ear,audio,deduct,5,Make a call and hold it to the ear,sourced
-microphone,Callers cannot hear you,audio,deduct,5,Voice Memos: record and play back,sourced
-vibration,Phone does not vibrate,audio,deduct,3,Flip mute switch or press Action button; any buzz?,policy
-wifi_bluetooth,Wi-Fi or Bluetooth greyed out,connectivity,inspect,30,Settings > Wi-Fi: switch grey after a restart?,policy
-no_service,No Service or Searching with a working SIM,connectivity,inspect,40,Insert a working SIM; toggle Airplane Mode; is IMEI blank in About?,policy
-carrier_locked,Locked to a foreign network,connectivity,deduct,30,Settings > General > About > Carrier Lock says No SIM restrictions?,policy
-esim_only,eSIM only with no SIM tray,connectivity,deduct,8,Is there a SIM tray on the side?,sourced
-liquid_damage,Has entered water or liquid,liquid,inspect,40,Any liquid-detected alert? Red indicator in SIM slot?,policy
-icloud_locked,Locked to another Apple Account,security,refuse,100,"After erase, does setup ask for someone else's Apple Account?",policy
-mdm_locked,Company or school managed phone,security,refuse,100,Settings > General > VPN & Device Management shows an organisation?,policy
-lost_or_blacklisted,Marked lost or IMEI blocked,security,refuse,100,Does the lock screen show a lost message?,policy
-passcode_unknown,Seller cannot unlock or phone says Unavailable,security,refuse,100,Can you unlock it and sign out of your Apple Account?,policy
-icloud_bypassed,iCloud was bypassed,security,refuse,100,Was it ever bypassed or unlocked by a shop?,policy
-parts_unknown_other,Camera or other part shows Unknown or Used,repair_history,deduct,10,Settings > General > About > Parts and Service History,policy
-logic_board_unverified,Logic board shows Unverified,repair_history,inspect,30,Parts and Service History: Logic Board Unverified?,policy
-finish_repair_pending,A part shows Finish Repair,repair_history,inspect,0,Parts and Service History: Finish Repair next to a part?,policy
-converted_housing,Model in Settings differs from the claim,body,refuse,100,Settings > General > About: Model Name and Model Number,policy
+fault,label,category,action,deduct_pct,repair,check_hint,basis
+charging_port,Charges only with wiggling or one cable; wireless charging works,power,deduct,5,,Try two cables and a wall socket; does wireless or MagSafe charging work?,sourced
+charging_ic,Does not charge with any cable or wirelessly,power,inspect,20,,"30 min on a wall socket with two cables, then force restart",policy
+no_power,Does not turn on,power,inspect,60,,"Charge one hour, then volume up, volume down, hold side button",policy
+boot_loop,Stuck on Apple logo or restarts by itself,power,inspect,40,,Does it pass the Apple logo and reach the lock screen?,policy
+screen_dead,Screen black or not responding to touch,screen,deduct,25,screen,Does it ring or vibrate while the screen stays black?,sourced
+display_lines,Lines green line flicker or tint on screen,screen,deduct,20,screen,Open a plain white page; any line or tint?,sourced
+oled_burn_in,Faint ghost image stays on screen,screen,deduct,10,screen,Plain grey image at full brightness; any keyboard or bar outline?,policy
+touch_fault,Ghost touch or dead touch area,screen,deduct,20,screen,Drag a jiggling app icon to every corner; does it drop?,sourced
+battery_swollen,Screen or back lifting from battery,battery,inspect,15,,Does the screen lift at an edge or the phone rock on a table?,policy
+battery_boosted,Battery health reading may be faked,repair_history,inspect,0,,Read cycle count and date of first use in Battery Health (iPhone 15 and later),policy
+face_id,Face ID not working or not available,camera,deduct,25,,Settings > Face ID & Passcode > Set Up Face ID,sourced
+rear_camera,Rear camera black blurry or shaking,camera,deduct,10,camera,Open Camera; try every zoom; any black blur or buzzing?,sourced
+front_camera,Selfie camera black or blurry,camera,deduct,10,camera,Switch to selfie camera and take a photo; then test Face ID,sourced
+camera_lens_cracked,Glass over rear camera cracked,camera,deduct,5,,Look at the glass rings over the rear lenses,sourced
+flashlight,Flashlight does not work,camera,deduct,5,,Control Center > Flashlight,policy
+bent_housing,Phone is bent,body,inspect,30,,Lay it screen-down on a flat table; does it rock?,policy
+buttons,Power volume or Action/mute button fault,body,deduct,5,,"Press each button; does the volume bar, lock or silent icon show?",policy
+loudspeaker,Loudspeaker silent or crackling,audio,deduct,5,,Settings > Sounds & Haptics; drag the ringtone slider,sourced
+earpiece,Cannot hear callers at the ear,audio,deduct,5,,Make a call and hold it to the ear,sourced
+microphone,Callers cannot hear you,audio,deduct,5,,Voice Memos: record and play back,sourced
+vibration,Phone does not vibrate,audio,deduct,3,,Flip mute switch or press Action button; any buzz?,policy
+wifi_bluetooth,Wi-Fi or Bluetooth greyed out,connectivity,inspect,30,,Settings > Wi-Fi: switch grey after a restart?,policy
+no_service,No Service or Searching with a working SIM,connectivity,inspect,40,,Insert a working SIM; toggle Airplane Mode; is IMEI blank in About?,policy
+carrier_locked,Locked to a foreign network,connectivity,deduct,30,,Settings > General > About > Carrier Lock says No SIM restrictions?,policy
+esim_only,eSIM only with no SIM tray,connectivity,deduct,8,,Is there a SIM tray on the side?,sourced
+liquid_damage,Has entered water or liquid,liquid,inspect,40,,Any liquid-detected alert? Red indicator in SIM slot?,policy
+icloud_locked,Locked to another Apple Account,security,refuse,100,,"After erase, does setup ask for someone else's Apple Account?",policy
+mdm_locked,Company or school managed phone,security,refuse,100,,Settings > General > VPN & Device Management shows an organisation?,policy
+lost_or_blacklisted,Marked lost or IMEI blocked,security,refuse,100,,Does the lock screen show a lost message?,policy
+passcode_unknown,Seller cannot unlock or phone says Unavailable,security,refuse,100,,Can you unlock it and sign out of your Apple Account?,policy
+icloud_bypassed,iCloud was bypassed,security,refuse,100,,Was it ever bypassed or unlocked by a shop?,policy
+logic_board_unverified,Logic board shows Unverified,repair_history,inspect,30,,Parts and Service History: Logic Board Unverified?,policy
+finish_repair_pending,A part shows Finish Repair,repair_history,inspect,0,,Parts and Service History: Finish Repair next to a part?,policy
+converted_housing,Model in Settings differs from the claim,body,refuse,100,,Settings > General > About: Model Name and Model Number,policy

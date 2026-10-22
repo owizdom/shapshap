@@ -51,6 +51,19 @@ describe("sheetCatalogLoader happy path and cache", () => {
     assert.deepEqual([...calls].sort(), [urls.faults, urls.prices, urls.stock].sort());
   });
 
+  test("spec 0002: repair columns come through the sheet; blank cells are null; an old sheet without them still loads (P11)", async () => {
+    const withCols = 'model,capacity_gb,base_ngn,floor_ngn,screen_repair_ngn,camera_repair_ngn\nSheet Phone,128,"₦500,000",10000,"₦300,000",\nNo Repair Phone,128,400000,10000,,\n';
+    const a = await setup({ prices: withCols }).load();
+    assert.equal(a.source, "sheet");
+    assert.deepEqual(a.problems, []);
+    assert.deepEqual(a.catalog.prices.map((p) => [p.screen_repair_ngn, p.camera_repair_ngn]), [[300000, null], [null, null]]);
+    const old = await setup().load(); // pricesCsv has no repair columns
+    assert.equal(old.source, "sheet");
+    assert.deepEqual(old.problems, []);
+    assert.deepEqual([old.catalog.prices[0].screen_repair_ngn, old.catalog.prices[0].camera_repair_ngn], [null, null]);
+    assert.equal(old.catalog.faults[0].repair, "");
+  });
+
   test("a second call within cacheMs makes no fetch and returns the same sheet", async () => {
     const { load, calls, clock } = setup();
     await load();

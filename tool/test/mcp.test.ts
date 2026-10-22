@@ -46,7 +46,7 @@ describe("B14 MCP surface (in memory)", () => {
       confirm_payment: ["reference"],
       create_checkout: ["find_my_off", "offer_token", "quote_token"],
       find_phones: ["max_topup_ngn", "quote_token"],
-      value_trade_in: ["capacity_gb", "faults", "model"],
+      value_trade_in: ["battery", "body", "capacity_gb", "faults", "model", "parts", "screen"],
     });
   });
 
@@ -60,7 +60,7 @@ describe("B14 MCP surface (in memory)", () => {
 
   test("create_checkout through MCP with find_my_off false is FIND_MY_ON", async () => {
     const { client, ctx } = await connect();
-    const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } }));
+    const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [], screen: "flawless", body: "flawless" } }));
     const f = payloadOf(await client.callTool({ name: "find_phones", arguments: { quote_token: v.quote_token, max_topup_ngn: 60000 } }));
     const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, offer_token: f.options[0].offer_token, find_my_off: false } }));
     assert.equal(c.error, "FIND_MY_ON");
@@ -79,14 +79,36 @@ describe("B14 MCP surface (in memory)", () => {
     }
   });
 
-  test("calling value_trade_in end to end through MCP returns the working", async () => {
+  test("value_trade_in condition inputs are optional enums with the website's options", async () => {
     const { client } = await connect();
-    const res = await client.callTool({ name: "value_trade_in", arguments: { model: "test phone", capacity_gb: 256, faults: ["a", "b"] } });
+    const { tools } = await client.listTools();
+    const t = tools.find((x) => x.name === "value_trade_in")!;
+    const props = t.inputSchema.properties as Record<string, { enum?: string[] }>;
+    assert.deepEqual(props.screen.enum, ["flawless", "light", "visible", "cracked"]);
+    assert.deepEqual(props.body.enum, ["flawless", "light", "visible", "cracked"]);
+    assert.deepEqual(props.battery.enum, ["healthy", "worn", "service", "replaced"]);
+    assert.deepEqual(props.parts.enum, ["genuine", "one", "multiple"]);
+    for (const k of ["screen", "body", "battery", "parts"]) assert.ok(!(t.inputSchema.required ?? []).includes(k), `${k} must be optional`);
+  });
+
+  test("calling value_trade_in end to end through MCP returns the working (flawless screen and body)", async () => {
+    const { client } = await connect();
+    const res = await client.callTool({ name: "value_trade_in", arguments: { model: "test phone", capacity_gb: 256, faults: ["a", "b"], screen: "flawless", body: "flawless" } });
     const body = payloadOf(res);
-    assert.equal(body.value_ngn, 75000);
+    assert.equal(body.value_ngn, 75003);
     assert.equal(body.base_ngn, 100005);
     assert.equal(typeof body.quote_token, "string");
-    assert.deepEqual(body.adjustments, [{ label: "Rounded down to the nearest 1,000", ngn: -3 }]);
+    assert.deepEqual(body.adjustments, []);
+    assert.deepEqual(body.condition, { screen: "flawless", body: "flawless", battery: "healthy", parts: "genuine" });
+  });
+
+  test("through MCP with no condition given, the default condition is applied and named in the working", async () => {
+    const { client } = await connect();
+    const res = await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } });
+    const body = payloadOf(res);
+    assert.equal(body.value_ngn, 93400);
+    assert.deepEqual(body.condition, { screen: "light", body: "light", battery: "healthy", parts: "genuine" });
+    assert.deepEqual(body.adjustments, [{ label: "Condition: screen light, body light, battery healthy, parts genuine", ngn: -6600 }]);
   });
 
   test("calling find_phones with a bad token returns QUOTE_INVALID through MCP", async () => {
@@ -97,7 +119,7 @@ describe("B14 MCP surface (in memory)", () => {
 
   test("a full flow through MCP: value, find, checkout, confirm waiting", async () => {
     const { client } = await connect();
-    const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } }));
+    const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [], screen: "flawless", body: "flawless" } }));
     const f = payloadOf(await client.callTool({ name: "find_phones", arguments: { quote_token: v.quote_token, max_topup_ngn: 60000 } }));
     assert.deepEqual(f.options.map((o: any) => o.unit_id), ["T-4", "T-5", "T-2"]);
     const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, offer_token: f.options[0].offer_token, find_my_off: true } }));

@@ -49,10 +49,10 @@ describe("api/mcp.ts without a sheet", () => {
     await new Promise<void>((r) => (server ? server.close(() => r()) : r()));
   });
 
-  test("variables absent: bundled prices (835000 base, 793000 value) and no outside fetch", async () => {
+  test("variables absent: bundled prices (775890 base, 688447 value) and no outside fetch", async () => {
     const body = await quote(base);
-    assert.equal(body.base_ngn, 835000);
-    assert.equal(body.value_ngn, 793000);
+    assert.equal(body.base_ngn, 775890);
+    assert.equal(body.value_ngn, 688447);
     assert.deepEqual(outside, []);
   });
 
@@ -60,7 +60,7 @@ describe("api/mcp.ts without a sheet", () => {
     process.env.PRICES_SHEET_PRICES_URL = "https://sheets.test/prices.csv";
     try {
       const body = await quote(base);
-      assert.equal(body.base_ngn, 835000);
+      assert.equal(body.base_ngn, 775890);
       assert.deepEqual(outside, []);
     } finally {
       delete process.env.PRICES_SHEET_PRICES_URL;

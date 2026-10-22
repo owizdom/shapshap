@@ -14,11 +14,15 @@ export function buildServer(deps: Deps): McpServer {
   const server = new McpServer({ name: "sharpsharp", version: "0.1.0" });
 
   server.registerTool("value_trade_in", {
-    description: "Values a customer's iPhone for trade-in from the shop's price list and returns a signed quote with the deduction working. It may refuse a phone outright (FAULT_NOT_BOUGHT) and may mark some faults as provisional (inspect_faults), to be confirmed at the pickup inspection. Call it first, and quote the customer only the figures it returns.",
+    description: "Values a customer's iPhone for trade-in from the shop's price list and returns a signed quote with the deduction working. It may refuse a phone outright (FAULT_NOT_BOUGHT) and may mark some faults as provisional (inspect_faults), to be confirmed at the pickup inspection. It prices the phone the way the shop's website calculator does: optional screen, body, battery and parts condition (defaults: light wear, light wear, healthy, genuine; pass them only when the customer states them), and named faults deducted on top. The condition used is returned. All figures are exact naira, not rounded. Call it first, and quote the customer only the figures it returns.",
     inputSchema: {
       model: z.string().describe("iPhone model, for example iPhone 16 Plus"),
       capacity_gb: z.number().describe("Storage capacity in GB"),
       faults: z.array(z.string()).describe("Fault ids reported by the customer, empty if none"),
+      screen: z.enum(["flawless", "light", "visible", "cracked"]).optional().describe("Screen condition; omit unless the customer states it (default light)"),
+      body: z.enum(["flawless", "light", "visible", "cracked"]).optional().describe("Body and frame condition; omit unless the customer states it (default light)"),
+      battery: z.enum(["healthy", "worn", "service", "replaced"]).optional().describe("Battery state; omit unless the customer states it (default healthy)"),
+      parts: z.enum(["genuine", "one", "multiple"]).optional().describe("How many parts are not genuine Apple; omit unless the customer states it (default genuine)"),
     },
   }, async (args) => reply(await valueTradeIn(deps, args)));
 

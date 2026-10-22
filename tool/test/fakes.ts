@@ -70,18 +70,18 @@ export class FakePaystack implements PaystackClient {
 export function tinyCatalog(): Catalog {
   return {
     prices: [
-      { model: "Test Phone", capacity_gb: 128, base_ngn: 100000, floor_ngn: 20000 },
-      { model: "Test Phone", capacity_gb: 256, base_ngn: 100005, floor_ngn: 20000 },
-      { model: "Cheap Phone", capacity_gb: 64, base_ngn: 50000, floor_ngn: 18345 },
-      { model: "Odd Phone", capacity_gb: 64, base_ngn: 100500, floor_ngn: 10000 },
+      { model: "Test Phone", capacity_gb: 128, base_ngn: 100000, floor_ngn: 20000, screen_repair_ngn: null, camera_repair_ngn: null },
+      { model: "Test Phone", capacity_gb: 256, base_ngn: 100005, floor_ngn: 20000, screen_repair_ngn: null, camera_repair_ngn: null },
+      { model: "Cheap Phone", capacity_gb: 64, base_ngn: 50000, floor_ngn: 18345, screen_repair_ngn: null, camera_repair_ngn: null },
+      { model: "Odd Phone", capacity_gb: 64, base_ngn: 100500, floor_ngn: 10000, screen_repair_ngn: null, camera_repair_ngn: null },
     ],
     faults: [
-      { fault: "a", label: "Fault A", category: "test", action: "deduct", deduct_pct: 10, check_hint: "", basis: "policy" },
-      { fault: "b", label: "Fault B", category: "test", action: "deduct", deduct_pct: 15, check_hint: "", basis: "policy" },
-      { fault: "dead", label: "Dead", category: "test", action: "deduct", deduct_pct: 70, check_hint: "", basis: "policy" },
-      { fault: "huge", label: "Huge", category: "test", action: "deduct", deduct_pct: 90, check_hint: "", basis: "policy" },
-      { fault: "insp", label: "Needs a look", category: "test", action: "inspect", deduct_pct: 20, check_hint: "", basis: "policy" },
-      { fault: "locked", label: "Locked", category: "test", action: "refuse", deduct_pct: 100, check_hint: "", basis: "policy" },
+      { fault: "a", label: "Fault A", category: "test", action: "deduct", deduct_pct: 10, check_hint: "", basis: "policy", repair: "" },
+      { fault: "b", label: "Fault B", category: "test", action: "deduct", deduct_pct: 15, check_hint: "", basis: "policy", repair: "" },
+      { fault: "dead", label: "Dead", category: "test", action: "deduct", deduct_pct: 70, check_hint: "", basis: "policy", repair: "" },
+      { fault: "huge", label: "Huge", category: "test", action: "deduct", deduct_pct: 90, check_hint: "", basis: "policy", repair: "" },
+      { fault: "insp", label: "Needs a look", category: "test", action: "inspect", deduct_pct: 20, check_hint: "", basis: "policy", repair: "" },
+      { fault: "locked", label: "Locked", category: "test", action: "refuse", deduct_pct: 100, check_hint: "", basis: "policy", repair: "" },
     ],
     stock: [
       { unit_id: "T-1", model: "Test Phone", capacity_gb: 128, grade: "A", battery_pct: 90, warranty_months: 3, price_ngn: 90000 },
@@ -95,9 +95,9 @@ export function tinyCatalog(): Catalog {
   };
 }
 
-export function floorTo1000(n: number): number {
-  return Math.floor(n / 1000) * 1000;
-}
+// Spec 0002: with screen and body flawless the tiny catalog's base is the working value (multiplier 0.65 + 0.35 = 1).
+// Spread into value_trade_in args wherever a test wants the hand-built numbers undisturbed by the default condition.
+export const FLAWLESS = { screen: "flawless", body: "flawless" } as const;
 
 export interface TestCtx {
   deps: Deps;

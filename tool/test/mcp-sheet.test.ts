@@ -44,7 +44,7 @@ describe("api/mcp.ts with the sheet configured", () => {
     await new Promise<void>((r) => (server ? server.close(() => r()) : r()));
   });
 
-  test("value_trade_in prices from the sheet: base 900000 and 10% charging_port, not the bundled 835000", async () => {
+  test("value_trade_in prices from the sheet: base 900000 and 10% charging_port, not the bundled 775890", async () => {
     const res = await realFetch(base, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${TOKEN}` },
@@ -56,8 +56,9 @@ describe("api/mcp.ts with the sheet configured", () => {
     const msg = JSON.parse(line);
     const body = msg.result.structuredContent ?? JSON.parse(msg.result.content.find((c: any) => c.type === "text").text);
     assert.equal(body.base_ngn, 900000);
-    assert.equal(body.deductions[0].ngn, 90000);
-    assert.equal(body.value_ngn, 810000);
+    // default condition: W = round(900000 x 0.934) = 840600 ; 10% = 84060 ; value 756540. The sheet has no repair columns.
+    assert.equal(body.deductions[0].ngn, 84060);
+    assert.equal(body.value_ngn, 756540);
     assert.ok(sheetCalls.includes(U.p) && sheetCalls.includes(U.f) && sheetCalls.includes(U.s), sheetCalls.join(","));
   });
 });

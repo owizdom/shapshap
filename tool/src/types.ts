@@ -3,11 +3,17 @@
 
 // ---- Data rows (tool/data/*.csv) ----
 
-export interface PriceRow { model: string; capacity_gb: number; base_ngn: number; floor_ngn: number }
+// base_ngn: Ziggatech's website quote for this model and storage, flawless and fully working (spec 0002 2.1).
+// screen_repair_ngn / camera_repair_ngn: Ziggatech's published repair price for the model; null when not published.
+export interface PriceRow {
+  model: string; capacity_gb: number; base_ngn: number; floor_ngn: number;
+  screen_repair_ngn: number | null; camera_repair_ngn: number | null;
+}
 export type FaultAction = "deduct" | "inspect" | "refuse";
 export interface FaultRow {
   fault: string; label: string; category: string; action: FaultAction;
   deduct_pct: number; check_hint: string; basis: "sourced" | "policy";
+  repair: RepairService; // which repair price, if any, sets the minimum deduction
 }
 export interface StockUnit {
   unit_id: string; model: string; capacity_gb: number; grade: string;
@@ -15,34 +21,50 @@ export interface StockUnit {
 }
 export interface Catalog { prices: PriceRow[]; faults: FaultRow[]; stock: StockUnit[] }
 
-// ---- Valuation rules ----
+// ---- Valuation rules (spec 0002) ----
 // Fault actions (faults.csv): "refuse" = the shop cannot buy the phone (iCloud, MDM, blacklisted...): value_trade_in
-//   returns FAULT_NOT_BOUGHT naming the fault, before any figure. "inspect" = cannot be judged in chat: its deduct_pct is a
-//   provisional hold, applied like a deduction, and the fault is listed in inspect_faults. "deduct" = applied as is.
-// MAX_DEDUCTION_PCT: the sum of deductions is capped at this share of base_ngn (shop policy); when the cap bites, an
-//   adjustment {label: "Deductions capped at 70% of base", ngn: +<excess>} keeps the working adding up. The cap applies
-//   before rounding and the floor.
-// deduction ngn for a fault = Math.round(base_ngn * deduct_pct / 100)
-// raw value = base_ngn - sum(deductions); duplicate faults count once
-// value_ngn = max(floor_ngn, floor_to_1000(raw value))
-// The working must add up exactly: value_ngn = base_ngn - sum(deductions.ngn) + sum(adjustments.ngn).
-//   cap: see MAX_DEDUCTION_PCT above.
-//   rounding: when floor_to_1000 removes naira, an adjustment {label: "Rounded down to the nearest 1,000", ngn: -<removed>}
-//   floor: when the floor lifts the value, an adjustment {label: "Minimum we pay for this model", ngn: +<lift>}
-//   (when the floor applies, there is no rounding adjustment; adjustments is [] when neither applies)
+//   returns FAULT_NOT_BOUGHT naming the fault, before any figure. "inspect" = cannot be judged in chat: its deduction is
+//   provisional and the fault is listed in inspect_faults. "deduct" = applied as is.
+// Condition: the four inputs Ziggatech's website asks, with its multipliers (CONDITION below). Defaults DEFAULT_CONDITION.
+//   W_exact = base_ngn * (0.65 * screen + 0.35 * body) * battery * parts
+//   W       = Math.round(W_exact)            the website's quote for a fully working phone in this condition
+//   site_no = Math.round(W_exact * 0.3)      the website's quote when "Does it function normally?" is "No"
+// deduction for a fault d(f) = max(Math.round(W * deduct_pct / 100), the price row's repair price named by f.repair when
+//   that price is not null). Duplicate faults count once.
+// value_ngn = max(W - sum(d), site_no if any fault is present, floor_ngn). Exact naira: no rounding to 1,000, no cap.
+// The working must add up exactly: value_ngn = base_ngn - sum(deductions.ngn) + sum(adjustments.ngn). Adjustments, in order:
+//   condition: when W !== base_ngn, {label: `Condition: screen ${screen}, body ${body}, battery ${battery}, parts ${parts}`,
+//     ngn: W - base_ngn} (negative)
+//   site floor: when site_no lifts the value, {label: "Raised to our website quote for a faulty phone", ngn: +<lift>}
+//   model floor: when floor_ngn lifts it further, {label: "Minimum we pay for this model", ngn: +<lift>}
 // Model matching: case-insensitive; collapse repeated spaces; "promax", "pro-max" and "pro max" all mean "Pro Max";
 // a leading "apple " is dropped; a missing leading "iphone " is added ("13 promax" == "iPhone 13 Pro Max").
 // The result always carries the canonical model name from the price file.
 // a quote is valid for QUOTE_TTL_MS from issue
 
 export const QUOTE_TTL_MS = 48 * 60 * 60 * 1000;
-export const MAX_DEDUCTION_PCT = 70;
+
+export type RepairService = "screen" | "camera" | "";
+export type Wear = "flawless" | "light" | "visible" | "cracked";
+export type BatteryState = "healthy" | "worn" | "service" | "replaced";
+export type PartsState = "genuine" | "one" | "multiple";
+export interface Condition { screen: Wear; body: Wear; battery: BatteryState; parts: PartsState }
+export const DEFAULT_CONDITION: Condition = { screen: "light", body: "light", battery: "healthy", parts: "genuine" };
+// Copied from the pricing script on ziggatech.com/pages/iphone-funnel, read 2026-10-22.
+export const CONDITION = {
+  screen: { flawless: 1.0, light: 0.92, visible: 0.80, cracked: 0.45 },
+  body: { flawless: 1.0, light: 0.96, visible: 0.90, cracked: 0.65 },
+  battery: { healthy: 1.0, worn: 0.95, service: 0.88, replaced: 0.85 },
+  parts: { genuine: 1.0, one: 0.88, multiple: 0.78 },
+  screenWeight: 0.65, bodyWeight: 0.35, notWorking: 0.3,
+} as const;
 
 export interface Deduction { fault: string; label: string; ngn: number }
 export interface Adjustment { label: string; ngn: number } // signed
 
 export interface Valuation {
   quote_token: string; model: string; capacity_gb: number; base_ngn: number;
+  condition: Condition; // as used, defaults filled in
   deductions: Deduction[]; adjustments: Adjustment[]; value_ngn: number; valid_until: string; // ISO-8601
   inspect_faults: { fault: string; label: string }[]; // provisional, confirmed at the pickup inspection
 }
@@ -51,6 +73,7 @@ export interface Valuation {
 // format: base64url(JSON payload) + "." + base64url(HMAC-SHA256(secret, first part))
 export interface QuotePayload {
   v: 1; model: string; capacity_gb: number; faults: string[]; // faults sorted, unique
+  condition: Condition;
   value_ngn: number; iat: number; exp: number; // epoch ms
 }
 
@@ -58,6 +81,10 @@ export interface QuotePayload {
 
 export type ToolError<C extends string> = { error: C; detail: string };
 
+export interface ValueTradeInArgs {
+  model: string; capacity_gb: number; faults: string[];
+  screen?: Wear; body?: Wear; battery?: BatteryState; parts?: PartsState; // omitted = DEFAULT_CONDITION
+}
 export type ValueTradeInResult = Valuation | ToolError<"MODEL_NOT_BOUGHT" | "CAPACITY_UNKNOWN" | "UNKNOWN_FAULT" | "FAULT_NOT_BOUGHT">;
 
 export interface PhoneOption {
@@ -150,6 +177,9 @@ export interface Deps {
 // Speed: the endpoint loads the catalog only for tools/call, not initialize or tools/list. A failed sheet read is
 // remembered for cacheMs (no refetch on every request while the sheet is down), and a good read older than cacheMs
 // is served immediately while a background refresh runs (stale-while-revalidate).
+// Prices may carry screen_repair_ngn and camera_repair_ngn (optional columns; a missing column or a blank cell is null;
+// a filled cell must be a whole naira amount from 10,000 to 5,000,000, otherwise the row is skipped with a problem).
+// Faults may carry repair: screen, camera or blank (optional column; anything else skips the row with a problem).
 // Row checks: prices need a model, capacity_gb > 0, base_ngn > 0 and 0 <= floor_ngn <= base_ngn, first row wins
 // on a duplicate model+capacity; faults need a key matching /^[a-z][a-z0-9_]*$/ and 0 <= deduct_pct <= 100;
 // stock needs a unique unit_id, price_ngn > 0 and 0 <= battery_pct <= 100. A failing row is skipped and
@@ -172,7 +202,7 @@ export interface LoadedCatalog { catalog: Catalog; source: "sheet" | "cached_she
 //                   are all set, logs source and problems with console.warn, and otherwise uses loadCatalog())
 // src/quote.ts     signQuote(p: QuotePayload, secret: string): string
 //                  readQuote(token: string, secret: string, now: number): QuotePayload | "QUOTE_INVALID" | "QUOTE_EXPIRED"
-// src/tools.ts     valueTradeIn(deps, args: { model: string; capacity_gb: number; faults: string[] }): Promise<ValueTradeInResult>
+// src/tools.ts     valueTradeIn(deps, args: ValueTradeInArgs): Promise<ValueTradeInResult>
 //                  findPhones(deps, args: { quote_token: string; max_topup_ngn: number }): Promise<FindPhonesResult>
 //                  createCheckout(deps, args: { quote_token: string; offer_token: string; find_my_off: boolean }): Promise<CreateCheckoutResult>
 //                  confirmPayment(deps, args: { reference: string }): Promise<ConfirmPaymentResult>

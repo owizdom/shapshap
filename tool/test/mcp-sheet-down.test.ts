@@ -45,6 +45,6 @@ describe("api/mcp.ts with an unreachable sheet", () => {
     const line = t.startsWith("{") ? t : t.split("\n").find((l) => l.startsWith("data:"))!.slice(5);
     const msg = JSON.parse(line);
     const body = msg.result.structuredContent ?? JSON.parse(msg.result.content.find((c: any) => c.type === "text").text);
-    assert.equal(body.value_ngn, 793000);
+    assert.equal(body.value_ngn, 688447);
   });
 });

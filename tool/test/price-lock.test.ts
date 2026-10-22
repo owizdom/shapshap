@@ -5,12 +5,12 @@ import { createHmac } from "node:crypto";
 import { valueTradeIn, findPhones, createCheckout, confirmPayment } from "../src/tools.ts";
 import { QUOTE_TTL_MS } from "../src/types.ts";
 import type { Catalog, Checkout, PhoneOption, Valuation } from "../src/types.ts";
-import { NOW, SECRET, makeCtx, tinyCatalog, signOfferRaw, b64u } from "./fakes.ts";
+import { FLAWLESS, NOW, SECRET, makeCtx, tinyCatalog, signOfferRaw, b64u } from "./fakes.ts";
 
-// Test Phone 128 with no faults is valued at 100000 in the tiny catalog: T-2 130000 (topup 30000), T-4 110000, T-5 120000.
+// Test Phone 128 with no faults is valued at 100000 in the tiny catalog (screen and body flawless): T-2 130000 (topup 30000), T-4 110000, T-5 120000.
 async function setup() {
   const ctx = makeCtx(tinyCatalog());
-  const v = (await valueTradeIn(ctx.deps, { model: "Test Phone", capacity_gb: 128, faults: [] })) as Valuation;
+  const v = (await valueTradeIn(ctx.deps, { model: "Test Phone", capacity_gb: 128, faults: [], ...FLAWLESS })) as Valuation;
   const f = await findPhones(ctx.deps, { quote_token: v.quote_token, max_topup_ngn: 60000 });
   assert.ok(!("error" in f));
   const options = (f as { options: PhoneOption[] }).options;
@@ -140,7 +140,7 @@ describe("a bad offer is refused before Paystack", () => {
   test("an offer made against a different quote_token", async () => {
     const { ctx, token, t2 } = await setup();
     ctx.clock.now = NOW + 1000; // a second quote, different iat, so a different signature
-    const v2 = (await valueTradeIn(ctx.deps, { model: "Test Phone", capacity_gb: 128, faults: [] })) as Valuation;
+    const v2 = (await valueTradeIn(ctx.deps, { model: "Test Phone", capacity_gb: 128, faults: [], ...FLAWLESS })) as Valuation;
     assert.notEqual(v2.quote_token, token);
     const r = await createCheckout(ctx.deps, { quote_token: v2.quote_token, offer_token: t2.offer_token, find_my_off: true });
     assert.equal(code(r), "OFFER_INVALID");
