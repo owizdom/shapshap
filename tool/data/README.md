@@ -1,6 +1,6 @@
 # Price data
 
-The shop is made up; its prices follow the Lagos used-iPhone market as of 21 October 2026.
+Modelled on Ziggatech (Ikeja), not affiliated; its prices follow the Lagos used-iPhone market as of 21 October 2026.
 
 - `trade-in-prices.csv`: what the store pays for a working phone. Mostly the buy prices Ziggatech (Ikeja) publishes on [its sell page](https://ziggatech.com/pages/sell-iphone), with missing storage sizes scaled by the ratio between Jiji Lagos listing medians.
 - `stock.csv`: phones for sale, priced inside the range of [Jiji Lagos used listings](https://jiji.ng/lagos/mobile-phones) for the same model and storage.
