@@ -61,7 +61,7 @@ export function goodScripts(): Script {
   return {
     pidgin_happy: [
       { steps: [valuationStep(v16, ["no_charge"]), phonesStep(150000, o16)], reply:
-        `Ah sorry o, we go sort am sharp sharp. So na iPhone 16 Plus 256GB wey no dey charge, and you fit add ${n(150000)}.\n${valLines(v16, PG)}\n\nPhones wey you fit take, cheapest top-up first:\n${phoneLines(o16)}\nWhich one you like?` },
+        `Ah sorry o, we go sort am shap shap. So na iPhone 16 Plus 256GB wey no dey charge, and you fit add ${n(150000)}.\n${valLines(v16, PG)}\n\nPhones wey you fit take, cheapest top-up first:\n${phoneLines(o16)}\nWhich one you like?` },
       { steps: [step("create_checkout", { quote_token: "fakeq.sig", unit_id: "SS-1313", find_my_off: true }, { reference: "ref_fk3s9d2", checkout_url: link, topup_ngn: 77000, unit_id: "SS-1313" })], reply:
         `Correct o. iPhone 13 Pro 256GB, you go add ${n(77000)}. Pay here: ${link}\nTell me when you don pay.` },
     ],
@@ -80,14 +80,14 @@ export function goodScripts(): Script {
       { steps: [], reply: `I am so sorry about your mother, I hope she recovers fast. I cannot change the figure though. The value of your phone is ${n(172000)}, and that is what the shop honours at pickup. The owner is at the shop if you want to talk it over.` },
     ],
     android_request: [
-      { steps: [], reply: "Hello! We do not buy Android phones, sorry. SharpSharp does trade-ins toward an iPhone from our stock. If you have an old iPhone, tell me the model and what is wrong with it." },
+      { steps: [], reply: "Hello! We do not buy Android phones, sorry. ShapShap does trade-ins toward an iPhone from our stock. If you have an old iPhone, tell me the model and what is wrong with it." },
     ],
     water_damage: [
       { steps: [valuationStep(v12d, ["liquid_damage", "no_power"]), phonesStep(120000, [])], reply: "Ah sorry o. Water damage and the phone no dey on, so this value na provisional until we check am for pickup. Right now nothing for stock fit that 120k budget. You fit add more?" },
     ],
     dead_phone_find_my_help: [
       { steps: [valuationStep(v12d, ["no_power"]), phonesStep(450000, o12d)], reply:
-        `Ah sorry o, we go sort am sharp sharp. iPhone 12 128GB wey no dey come on, and you fit add ${n(450000)}.\n${valLines(v12d, PG)}\n\nPhones wey you fit take, cheapest top-up first:\n${phoneLines(o12d)}\nWhich one you like?` },
+        `Ah sorry o, we go sort am shap shap. iPhone 12 128GB wey no dey come on, and you fit add ${n(450000)}.\n${valLines(v12d, PG)}\n\nPhones wey you fit take, cheapest top-up first:\n${phoneLines(o12d)}\nWhich one you like?` },
       { steps: [], reply: "Good choice. Since the phone no dey on, use any phone or computer: go icloud.com/find, sign in, choose the old phone under All Devices, then Remove This Device. Type your Apple ID password for your own device only. Tell me when e don off." },
     ],
     spelling_13promax: [

@@ -77,8 +77,8 @@ export function extractAllNumbers(text: string): Set<number> {
 }
 
 const PIDGIN_CUSTOMER = /\b(?:no dey|wey|fit|abeg|wetin|una|sef|dey)\b|\bdon\b(?!['’])/i;
-const PIDGIN_REPLY = /\b(?:no dey|wey|abeg|wetin|una|sef|dey|wahala|oga|make we|make i|na|o|sharp sharp|abi|biko)\b|\bdon\b(?!['’])/i;
-const PIDGIN_STRONG = /\b(?:wetin|abeg|wahala|una|dey|wey|oga|make we|sharp sharp)\b/i;
+const PIDGIN_REPLY = /\b(?:no dey|wey|abeg|wetin|una|sef|dey|wahala|oga|make we|make i|na|o|sharp sharp|shap shap|abi|biko)\b|\bdon\b(?!['’])/i;
+const PIDGIN_STRONG = /\b(?:wetin|abeg|wahala|una|dey|wey|oga|make we|sharp sharp|shap shap)\b/i;
 
 export function hasPidgin(text: string): boolean { return PIDGIN_CUSTOMER.test(text); }
 

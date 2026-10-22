@@ -35,7 +35,7 @@ export interface HarnessResult {
 
 export function renderSummary(r: Omit<HarnessResult, "summaryPath" | "outDir"> & { scenarios: Scenario[]; runsRequested: number }): string {
   const lines: string[] = [];
-  lines.push("# SharpSharp eval summary", "");
+  lines.push("# ShapShap eval summary", "");
   lines.push(`Runs requested per scenario: ${r.runsRequested}`);
   lines.push(`Credits spent: ${r.spent.toFixed(3)} of budget ${r.budget}`);
   if (r.stoppedForBudget) lines.push("", "STOPPED: credit budget exceeded, remaining runs were not executed.");
