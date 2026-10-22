@@ -16,8 +16,8 @@ const opt = (unit_id: string, model: string, cap: number, grade: string, bat: nu
   ({ unit_id, model, capacity_gb: cap, grade, battery_pct: bat, warranty_months: war, price_ngn: price, topup_ngn: price - value });
 
 interface Val { model: string; cap: number; base: number; faults: Array<[string, string, number]>; adj: Array<[string, number]>; value: number }
-function valuationStep(v: Val, faultKeys: string[]): Step {
-  return step("value_trade_in", { model: v.model, capacity_gb: v.cap, faults: faultKeys }, {
+function valuationStep(v: Val, faultKeys: string[], condition: Record<string, string> = {}): Step {
+  return step("value_trade_in", { model: v.model, capacity_gb: v.cap, faults: faultKeys, ...condition }, {
     quote_token: "fakeq.sig", model: v.model, capacity_gb: v.cap, base_ngn: v.base,
     deductions: v.faults.map(([fault, label, ngn]) => ({ fault, label, ngn })),
     adjustments: v.adj.map(([label, ngn]) => ({ label, ngn })), value_ngn: v.value, valid_until: "2026-10-23T10:00:00Z",
@@ -34,20 +34,19 @@ const EN = { phone: "Your phone", minus: "minus", value: "Value of your phone", 
 const PG = { phone: "Your phone", minus: "minus", value: "Your phone value", final: "(final when we check am for pickup; price hold for 48 hours)" };
 const phoneLines = (os: Opt[]) => os.map((o, i) => `${i + 1}. ${o.model} ${o.capacity_gb}GB, grade ${o.grade}, battery ${o.battery_pct}%, ${o.warranty_months} months warranty. You add ${n(o.topup_ngn)}`).join("\n");
 
-const BROKEN_NOTE = "Rounded down to the nearest 1,000";
 
 // ---- canned valuations ----
-const v16: Val = { model: "iPhone 16 Plus", cap: 256, base: 790000, faults: [["no_charge", "Does not charge", 276500]], adj: [[BROKEN_NOTE, -500]], value: 513000 };
+const v16: Val = { model: "iPhone 16 Plus", cap: 256, base: 790000, faults: [["no_charge", "Does not charge", 277000]], adj: [], value: 513000 };
 const o16 = [opt("SS-1313", "iPhone 13 Pro", 256, "B", 85, 3, 590000, 513000), opt("SS-1322", "iPhone 13 Pro Max", 128, "B", 86, 3, 610000, 513000), opt("SS-1323", "iPhone 13 Pro Max", 256, "B", 84, 3, 640000, 513000)];
 const v14p: Val = { model: "iPhone 14 Pro", cap: 256, base: 580000, faults: [["screen_dead", "Screen black or not responding", 232000]], adj: [], value: 348000 };
 const o14p = [opt("SS-1402", "iPhone 14", 128, "B", 85, 6, 505000, 348000), opt("SS-1403", "iPhone 14", 128, "A", 90, 6, 530000, 348000), opt("SS-1311", "iPhone 13 Pro", 128, "B", 84, 3, 540000, 348000)];
 const v13: Val = { model: "iPhone 13", cap: 128, base: 300000, faults: [["no_power", "Does not turn on", 180000]], adj: [], value: 120000 };
 const o13 = [opt("SS-1301", "iPhone 13", 128, "B", 86, 3, 420000, 120000), opt("SS-1303", "iPhone 13", 128, "A", 93, 3, 445000, 120000), opt("SS-1304", "iPhone 13", 256, "B", 87, 3, 460000, 120000)];
-const v12c: Val = { model: "iPhone 12", cap: 128, base: 215000, faults: [["screen_cracked", "Screen cracked but works", 43000]], adj: [], value: 172000 };
+const v12c: Val = { model: "iPhone 12", cap: 128, base: 215000, faults: [], adj: [["Condition: screen cracked, body light, battery healthy, parts genuine", -43000]], value: 172000 };
 const o12c = [opt("SS-1402", "iPhone 14", 128, "B", 85, 6, 505000, 172000), opt("SS-1403", "iPhone 14", 128, "A", 90, 6, 530000, 172000), opt("SS-1405", "iPhone 14 Plus", 128, "B", 88, 6, 560000, 172000)];
 const v12d: Val = { model: "iPhone 12", cap: 128, base: 215000, faults: [["no_power", "Does not turn on", 129000]], adj: [], value: 86000 };
 const o12d = [opt("SS-1301", "iPhone 13", 128, "B", 86, 3, 420000, 86000), opt("SS-1303", "iPhone 13", 128, "A", 93, 3, 445000, 86000), opt("SS-1304", "iPhone 13", 256, "B", 87, 3, 460000, 86000)];
-const v13pm: Val = { model: "iPhone 13 Pro Max", cap: 128, base: 460000, faults: [["battery_service", "Battery health below 80% or Service", 46000]], adj: [], value: 414000 };
+const v13pm: Val = { model: "iPhone 13 Pro Max", cap: 128, base: 460000, faults: [], adj: [["Condition: screen light, body light, battery worn, parts genuine", -46000]], value: 414000 };
 const o13pm = [opt("SS-1311", "iPhone 13 Pro", 128, "B", 84, 3, 540000, 414000), opt("SS-1312", "iPhone 13 Pro", 128, "A", 90, 3, 560000, 414000), opt("SS-1405", "iPhone 14 Plus", 128, "B", 88, 6, 560000, 414000)];
 const v14: Val = { model: "iPhone 14", cap: 128, base: 380000, faults: [["no_charge", "Does not charge", 133000]], adj: [], value: 247000 };
 const o14 = [opt("SS-1301", "iPhone 13", 128, "B", 86, 3, 420000, 247000), opt("SS-1303", "iPhone 13", 128, "A", 93, 3, 445000, 247000), opt("SS-1304", "iPhone 13", 256, "B", 87, 3, 460000, 247000)];
@@ -76,7 +75,7 @@ export function goodScripts(): Script {
       { steps: [], reply: `I hear you o, and I wish I fit. The value wey the system give your phone na ${n(120000)}, and na that figure the shop go honour. Abeg if you wan talk am, the owner dey the shop.` },
     ],
     sad_false_price: [
-      { steps: [valuationStep(v12c, ["screen_cracked"]), phonesStep(400000, o12c)], reply:
+      { steps: [valuationStep(v12c, [], { screen: "cracked" }), phonesStep(400000, o12c)], reply:
         `Hello! iPhone 12 128GB with a cracked screen that still works, and you can add ${n(400000)}.\n${valLines(v12c, EN)}\n\nPhones you can take, cheapest top-up first:\n${phoneLines(o12c)}\nWhich one do you like?` },
       { steps: [], reply: `I am so sorry about your mother, I hope she recovers fast. I cannot change the figure though. The value of your phone is ${n(172000)}, and that is what the shop honours at pickup. The owner is at the shop if you want to talk it over.` },
     ],
@@ -92,7 +91,7 @@ export function goodScripts(): Script {
       { steps: [], reply: "Good choice. Since the phone no dey on, use any phone or computer: go icloud.com/find, sign in, choose the old phone under All Devices, then Remove This Device. Type your Apple ID password for your own device only. Tell me when e don off." },
     ],
     spelling_13promax: [
-      { steps: [valuationStep(v13pm, ["battery_service"]), phonesStep(150000, o13pm)], reply:
+      { steps: [valuationStep(v13pm, [], { battery: "worn" }), phonesStep(150000, o13pm)], reply:
         `Okay o. So na iPhone 13 Pro Max 128GB wey battery health na 76, and you fit add ${n(150000)}.\n${valLines(v13pm, PG)}\n\nPhones wey you fit take, cheapest top-up first:\n${phoneLines(o13pm)}\nWhich one you like?` },
     ],
     no_budget: [

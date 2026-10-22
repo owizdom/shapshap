@@ -11,7 +11,6 @@ The key, what to ask the customer to check, and how people describe it. Send onl
 
 ## Screen
 
-- **screen_cracked** (deduct): Screen glass cracked but works. Check: Picture and touch work in every corner?
 - **screen_dead** (deduct): Screen black or not responding to touch. Check: Does it ring or vibrate while the screen stays black?
 - **display_lines** (deduct): Lines green line flicker or tint on screen. Check: Open a plain white page; any line or tint?
 - **oled_burn_in** (deduct): Faint ghost image stays on screen. Check: Plain grey image at full brightness; any keyboard or bar outline?
@@ -19,7 +18,6 @@ The key, what to ask the customer to check, and how people describe it. Send onl
 
 ## Battery
 
-- **battery_service** (deduct): Battery health below 80% or Service. Check: Settings > Battery > Battery Health > Maximum Capacity
 - **battery_swollen** (inspect): Screen or back lifting from battery. Check: Does the screen lift at an edge or the phone rock on a table?
 
 ## Cameras and Face ID
@@ -32,8 +30,6 @@ The key, what to ask the customer to check, and how people describe it. Send onl
 
 ## Body and buttons
 
-- **back_glass** (deduct): Back glass cracked. Check: Any crack on the back, even small?
-- **frame_dents** (deduct): Dents or deep scratches on metal frame. Check: Run a finger along the edges and corners
 - **bent_housing** (inspect): Phone is bent. Check: Lay it screen-down on a flat table; does it rock?
 - **buttons** (deduct): Power volume or Action/mute button fault. Check: Press each button; does the volume bar, lock or silent icon show?
 - **converted_housing** (refuse): Model in Settings differs from the claim. Check: Settings > General > About: Model Name and Model Number
@@ -58,10 +54,7 @@ The key, what to ask the customer to check, and how people describe it. Send onl
 
 ## Repair history (Settings, General, About, Parts and Service History)
 
-- **aftermarket_screen** (deduct): Display shows Unknown or True Tone missing. Check: Settings > General > About > Parts and Service History; Settings > Display & Brightness > True Tone
-- **battery_not_genuine** (deduct): Battery shows Unknown or Unable to verify. Check: Settings > Battery > Battery Health; Parts and Service History
 - **battery_boosted** (inspect): Battery health reading may be faked. Check: Read cycle count and date of first use in Battery Health (iPhone 15 and later)
-- **parts_unknown_other** (deduct): Camera or other part shows Unknown or Used. Check: Settings > General > About > Parts and Service History
 - **logic_board_unverified** (inspect): Logic board shows Unverified. Check: Parts and Service History: Logic Board Unverified?
 - **finish_repair_pending** (inspect): A part shows Finish Repair. Check: Parts and Service History: Finish Repair next to a part?
 
@@ -77,11 +70,10 @@ The key, what to ask the customer to check, and how people describe it. Send onl
 
 - charging_port or charging_ic: "e no dey charge", "charging no dey work", "I plug am e no gree enter" (ask about wireless charging to tell them apart)
 - no_power: "e don dead", "e no dey come on", "e no dey on at all"
-- screen_cracked: "the screen don crack", "screen scatter but e dey work"; display_lines: "screen dey show line", "green line"
+- display_lines: "screen dey show line", "green line"
 - screen_dead: "screen black but I hear sound", "display no dey show"; touch_fault: "the screen dey press itself"
 - face_id: "Face ID no work", "no face id", "e dey ask passcode only"
-- battery_service: "BH 79", "battery don show service"; battery_not_genuine: "battery dey show unknown part"
-- aftermarket_screen: "changed screen", "screen no be original", "true tone no dey"
+- Condition, not a fault key: "the screen don crack" or "screen scatter but e dey work" is screen cracked; "back don crack" is body cracked; "BH 79" is battery worn; "battery don show service" is battery service; "battery dey show unknown part" is battery replaced and parts one; "changed screen" or "screen no be original": ask whether Settings, General, About lists it as Unknown Part; if yes, parts one.
 - no_service: "network no dey enter", "e dey search network"; carrier_locked: "e lock to UK network"; esim_only: "e no get SIM tray", "na eSIM only"
 - liquid_damage: "e enter water"; icloud_locked: "iCloud dey on am", "e get iCloud"; mdm_locked: "e be company phone"
 
