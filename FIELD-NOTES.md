@@ -18,6 +18,18 @@ My eval harness sends messages through Chord's external chat API and saves every
 
 ![Eval run on skill v3: turn 2 repeats both tool calls, and checkout uses the turn 2 tokens](assets/field-notes/1-eval-turns.png)
 
+The raw calls from that run (scenario `pidgin_happy`, tokens cut to their last 8 characters):
+
+```
+turn 1  "abeg my iPhone 16 Plus 256GB no dey charge with cable ..."
+  value_trade_in                         -> quote …drZoFqy8, value 793000
+  find_phones     (quote …drZoFqy8)      -> offers …No5b1dD4 …3uzSM8tA …9qKPjTMA
+turn 2  "I go take number 1. Find My don off for the old phone o"
+  value_trade_in                         -> quote …etFynKQ8, value 793000
+  find_phones     (quote …etFynKQ8)      -> offers …TCPuYYyo …AS8yewNs …6Nriyd5Y
+  create_checkout (offer …TCPuYYyo)      -> ss-ss-1602-emelhiy281oi, top-up 22000
+```
+
 Chord's chat docs say each call loads "the most recent 30 turns". They do not say whether tool results are part of those turns.
 
 #### Fix
@@ -57,22 +69,25 @@ None on my side; the customer asked again. Note 1's `v7` change made the retry s
 
 Show the partner chat a delivery status for every turn, and retry a reply that was produced but not delivered. Say in the API key docs which scopes reading a conversation needs, and fix the 500 on the conversations endpoint.
 
-## 3. The owner's Sheet returned two prices for six minutes
+## 3. The in-app chat does not show what WhatsApp shows
 
 #### What happened
 
-The tool reads prices from the owner's Google Sheet, published as CSV. I changed phone `SS-1602` from ₦815,000 to ₦820,000, then set it back at about 17:27 UTC. The published CSV kept switching between the two prices, 12 changes in all, the last at 17:31:20.
+- In the simulator the pickup code arrived as `**888752**`, asterisks visible.
+- In Chord's in-app chat, Markdown bold shows as bold and single line breaks are merged.
+- The in-app chat accepts photos. The simulator has a text box only.
+
+![Simulator: Markdown bold arrives as literal asterisks](assets/field-notes/3-simulator-asterisks.png)
 
 #### How I found the cause
 
-I fetched the CSV with `curl` every 10 seconds and logged each change. The tool's own parser was not involved.
-
-![Owner's cell against the published CSV: the cell went back to ₦815,000 at about 17:27, the CSV served ₦820,000 four more times](assets/field-notes/3-sheet-two-prices.png)
+Chord's chat docs define the reply as "The answer text. Markdown." WhatsApp bold uses one asterisk, so two asterisks show as typed.
 
 #### Fix
 
-`find_phones` signs the price it shows into an offer token, and `create_checkout` charges that signed top-up. For go-live, the owner must not change a price while a sale is open.
+- `v6`: each list item on its own `- ` line.
+- `v7`: plain text only, no Markdown.
 
 #### What I'd change in Chord
 
-A Google Sheets connector that reads through the Sheets API. Until then, one line in the tool docs: a sheet published as CSV can return old and new values for minutes after an edit.
+Convert Markdown to WhatsApp formatting on the WhatsApp channel and in the simulator, or add a WhatsApp preview to the in-app chat. State in the docs which surfaces accept images.
