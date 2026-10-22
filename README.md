@@ -6,7 +6,7 @@ Ziggatech, an iPhone store in Lagos, takes old iPhones as part-payment, but its 
 
 ![Ziggatech's calculator: one yes or no for every functional fault](assets/problem/1-ziggatech-calculator.png)
 
-![ShapShap in the WhatsApp simulator: the customer's description becomes an itemised valuation](assets/problem/2-sharpsharp-valuation.png)
+![ShapShap in the WhatsApp simulator: the customer's description becomes an itemised valuation](assets/problem/2-shapshap-valuation.png)
 
 A demo, not affiliated with Ziggatech. Every phone, price and payment in it is test data.
 
