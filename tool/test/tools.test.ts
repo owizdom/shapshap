@@ -51,7 +51,7 @@ describe("B4 find_phones", () => {
     const first = opts[0];
     assert.deepEqual(
       { model: first.model, capacity_gb: first.capacity_gb, grade: first.grade, battery_pct: first.battery_pct, warranty_months: first.warranty_months },
-      { model: "iPhone 16 Plus", capacity_gb: 128, grade: "A", battery_pct: 95, warranty_months: 6 },
+      { model: "iPhone 16 Plus", capacity_gb: 128, grade: "A", battery_pct: 95, warranty_months: 12 },
     );
   });
 
