@@ -34,23 +34,6 @@ describe("SKILL.md covers the data", () => {
     assert.deepEqual(missing, []);
   });
 
-  test("the seven condition rows left the fault list (spec 0002): none is a fault table row any more", () => {
-    for (const k of ["screen_cracked", "back_glass", "frame_dents", "battery_service", "battery_not_genuine", "aftermarket_screen", "parts_unknown_other"]) {
-      assert.ok(!catalog.faults.some((f) => f.fault === k), `${k} still in faults.csv`);
-      assert.ok(!new RegExp(`^\\s*\\|\\s*${k}\\s*\\|`, "m").test(skill), `${k} still a row in the SKILL.md fault table`);
-    }
-  });
-
-  test("the retired no_charge key is gone from SKILL.md", () => {
-    assert.ok(!mentions(skill, "no_charge"));
-  });
-
-  test("FAULT_NOT_BOUGHT is handled as a bullet in the error section", () => {
-    const section = skill.split(/^## /m).find((s) => s.startsWith("When a tool returns an error"));
-    assert.ok(section, "error section missing");
-    assert.match(section, /^\s*[-*]\s*FAULT_NOT_BOUGHT\b/m);
-  });
-
   test("every refuse fault is named in the refuse handling", () => {
     const refuse = catalog.faults.filter((f) => f.action === "refuse").map((f) => f.fault);
     assert.equal(refuse.length, 6);

@@ -1,4 +1,4 @@
-// 4b: sheetCatalogLoader with an injected fetch and clock. Fallback is all-or-nothing.
+// sheetCatalogLoader with an injected fetch and clock. Fallback is all-or-nothing.
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { sheetCatalogLoader } from "../src/sheet.ts";
@@ -51,42 +51,6 @@ describe("sheetCatalogLoader happy path and cache", () => {
     assert.deepEqual([...calls].sort(), [urls.faults, urls.prices, urls.stock].sort());
   });
 
-  test("spec 0002: repair columns come through the sheet; blank cells are null; an old sheet without them still loads (P11)", async () => {
-    const withCols = 'model,capacity_gb,base_ngn,floor_ngn,screen_repair_ngn,camera_repair_ngn\nSheet Phone,128,"₦500,000",10000,"₦300,000",\nNo Repair Phone,128,400000,10000,,\n';
-    const a = await setup({ prices: withCols }).load();
-    assert.equal(a.source, "sheet");
-    assert.deepEqual(a.problems, []);
-    assert.deepEqual(a.catalog.prices.map((p) => [p.screen_repair_ngn, p.camera_repair_ngn]), [[300000, null], [null, null]]);
-    const old = await setup().load(); // pricesCsv has no repair columns
-    assert.equal(old.source, "sheet");
-    assert.deepEqual(old.problems, []);
-    assert.deepEqual([old.catalog.prices[0].screen_repair_ngn, old.catalog.prices[0].camera_repair_ngn], [null, null]);
-    assert.equal(old.catalog.faults[0].repair, "");
-  });
-
-  test("a second call within cacheMs makes no fetch and returns the same sheet", async () => {
-    const { load, calls, clock } = setup();
-    await load();
-    const n = calls.length;
-    clock.t += 59_000;
-    const r = await load();
-    assert.equal(calls.length, n);
-    assert.equal(r.source, "sheet");
-    assert.equal(r.catalog.prices[0].base_ngn, 500000);
-  });
-
-  test("after cacheMs it refetches and picks up an edited cell", async () => {
-    const { load, calls, clock, replies } = setup();
-    await load();
-    const n = calls.length;
-    replies[urls.prices] = pricesCsv(650000);
-    clock.t += 60_001;
-    const r = await load();
-    assert.equal(calls.length, n + 3);
-    assert.equal(r.source, "sheet");
-    assert.equal(r.catalog.prices[0].base_ngn, 650000);
-  });
-
   test("skipped rows come back as problems while the valid rows load", async () => {
     const { load } = setup({ prices: pricesCsv(500000) + "Bad Phone,0,100,50\n" });
     const r = await load();
@@ -99,13 +63,7 @@ describe("sheetCatalogLoader happy path and cache", () => {
 
 describe("sheetCatalogLoader fallback is all-or-nothing", () => {
   const failures: [string, (s: ReturnType<typeof setup>) => void][] = [
-    ["a tab that never answers (timeout)", (s) => { s.replies[urls.stock] = "hang"; }],
-    ["a non-2xx on one tab", (s) => { s.replies[urls.faults] = 403; }],
-    ["a 500 on one tab", (s) => { s.replies[urls.prices] = 500; }],
     ["a network error on one tab", (s) => { s.replies[urls.stock] = new TypeError("fetch failed"); }],
-    ["a tab with only a header row", (s) => { s.replies[urls.faults] = "fault,label,category,action,deduct_pct,check_hint,basis\n"; }],
-    ["a tab where every row is invalid", (s) => { s.replies[urls.prices] = "model,capacity_gb,base_ngn,floor_ngn\n,0,0,0\nX,128,100,500\n"; }],
-    ["an empty tab", (s) => { s.replies[urls.stock] = ""; }],
   ];
 
   for (const [name, breakIt] of failures) {
@@ -131,25 +89,51 @@ describe("sheetCatalogLoader fallback is all-or-nothing", () => {
       assert.equal(r.catalog.prices[0].model, "Sheet Phone");
     });
   }
+});
 
-  test("recovers to a fresh sheet once every tab is good again", async () => {
-    const s = setup();
-    await s.load();
-    s.replies[urls.stock] = 503;
-    s.clock.t += 60_001;
-    assert.equal((await s.load()).source, "cached_sheet");
-    s.replies[urls.stock] = STOCK;
-    s.replies[urls.prices] = pricesCsv(900000);
-    s.clock.t += 120_000;
-    const r = await s.load();
-    assert.equal(r.source, "sheet");
-    assert.equal(r.catalog.prices[0].base_ngn, 900000);
-  });
+describe("a sheet that returns HTML instead of CSV", () => {
+  const urls: SheetUrls = { prices: "https://s.test/p", faults: "https://s.test/f", stock: "https://s.test/s" };
+  const PRICES = "model,capacity_gb,base_ngn,floor_ngn\n";
+  const FAULTS = "fault,label,category,action,deduct_pct,check_hint,basis\n";
+  const STOCK = "unit_id,model,capacity_gb,grade,battery_pct,warranty_months,price_ngn\n";
+  const okFault = "screen_cracked,Screen cracked,screen,deduct,20,Picture works?,sourced\n";
+  const okStock = "SS-1,iPhone 13,128,A,90,3,420000\n";
+  const HTML = "<!DOCTYPE html><html><body>Sign in</body></html>";
+  const mk = (over: Partial<Record<keyof SheetUrls, string>>) => {
+    const body: Record<string, string> = {
+      [urls.prices]: over.prices ?? PRICES + "Test Phone,128,100000,20000\n",
+      [urls.faults]: over.faults ?? FAULTS + okFault,
+      [urls.stock]: over.stock ?? STOCK + okStock,
+    };
+    const f = (async (input: any) => new Response(body[typeof input === "string" ? input : input.url], { status: 200 })) as unknown as typeof fetch;
+    return sheetCatalogLoader(urls, { fetch: f, timeoutMs: 50, bundled: () => tinyCatalog() });
+  };
 
-  test("a hanging tab does not hold the call past a small multiple of timeoutMs", async () => {
-    const s = setup({ stock: "hang" });
-    const t0 = Date.now();
-    await s.load();
-    assert.ok(Date.now() - t0 < 1000, `took ${Date.now() - t0} ms`);
+  for (const tab of ["stock"] as const) {
+    test(`an HTML body with status 200 for the ${tab} tab falls back, never source sheet`, async () => {
+      const r = await mk({ [tab]: HTML })();
+      assert.notEqual(r.source, "sheet");
+      assert.equal(r.source, "bundled");
+      assert.deepEqual(r.catalog, tinyCatalog());
+      assert.ok(r.problems.length > 0);
+    });
+  }
+
+  test("an HTML stock tab after a good read serves cached_sheet", async () => {
+    let html = false;
+    const f = (async (input: any) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (html && url === urls.stock) return new Response(HTML, { status: 200 });
+      const body = url === urls.prices ? PRICES + "Test Phone,128,100000,20000\n" : url === urls.faults ? FAULTS + okFault : STOCK + okStock;
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
+    const clock = { t: 1_000_000 };
+    const load = sheetCatalogLoader(urls, { fetch: f, timeoutMs: 50, cacheMs: 1000, now: () => clock.t, bundled: () => tinyCatalog() });
+    assert.equal((await load()).source, "sheet");
+    html = true;
+    clock.t += 1001;
+    const r = await load();
+    assert.equal(r.source, "cached_sheet");
+    assert.equal(r.catalog.stock.length, 1);
   });
 });

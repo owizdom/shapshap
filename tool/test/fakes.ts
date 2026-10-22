@@ -9,7 +9,6 @@ import type {
 
 export const SECRET = "test-secret-not-real";
 export const NOW = Date.parse("2026-10-21T12:00:00.000Z");
-export const HOUR = 60 * 60 * 1000;
 
 export interface InitializeCall {
   email: string; amount_kobo: number; reference: string; metadata: CheckoutMetadata;
@@ -175,11 +174,4 @@ export async function offerFor(ctx: TestCtx, quote_token: string, unit_id: strin
   const o = r.options.find((x) => x.unit_id === unit_id);
   if (!o) throw new Error(`find_phones did not offer ${unit_id}`);
   return o.offer_token;
-}
-
-// A correctly signed offer without going through find_phones (for units find_phones would hide, e.g. sold ones).
-export function forgeOffer(quote_token: string, unit_id: string, price_ngn: number, topup_ngn: number): string {
-  const [body, sig] = quote_token.split(".");
-  const exp = JSON.parse(Buffer.from(body, "base64url").toString()).exp as number;
-  return signOfferRaw({ v: 1, unit_id, price_ngn, topup_ngn, quote_sig: sig, exp });
 }

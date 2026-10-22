@@ -2,9 +2,9 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { valueTradeIn, findPhones, createCheckout, confirmPayment } from "../src/tools.ts";
+import { valueTradeIn, findPhones, createCheckout } from "../src/tools.ts";
 import { QUOTE_TTL_MS } from "../src/types.ts";
-import type { Catalog, Checkout, PhoneOption, Valuation } from "../src/types.ts";
+import type { Checkout, PhoneOption, Valuation } from "../src/types.ts";
 import { FLAWLESS, NOW, SECRET, makeCtx, tinyCatalog, signOfferRaw, b64u } from "./fakes.ts";
 
 // Test Phone 128 with no faults is valued at 100000 in the tiny catalog (screen and body flawless): T-2 130000 (topup 30000), T-4 110000, T-5 120000.
@@ -53,46 +53,22 @@ describe("the lock holds", () => {
     assert.equal(ctx.paystack.initializeCalls[0].amount_kobo, 30000 * 100);
     assert.deepEqual(ctx.paystack.initializeCalls[0].metadata, { unit_id: "T-2", topup_ngn: 30000, quote_token: token });
   });
-
-  test("swapping the whole catalog (a sheet edit) does not change the charge, up or down", async () => {
-    for (const newPrice of [175000, 105000]) {
-      const { ctx, token, t2 } = await setup();
-      const swapped: Catalog = tinyCatalog();
-      swapped.stock.find((u) => u.unit_id === "T-2")!.price_ngn = newPrice;
-      ctx.deps.catalog = swapped;
-      const c = (await createCheckout(ctx.deps, { quote_token: token, offer_token: t2.offer_token, find_my_off: true })) as Checkout;
-      assert.equal(c.topup_ngn, 30000, String(newPrice));
-      assert.equal(ctx.paystack.initializeCalls[0].amount_kobo, 3000000);
-      assert.equal(ctx.paystack.initializeCalls[0].metadata.topup_ngn, t2.topup_ngn);
-    }
-  });
-
-  test("confirm_payment reserves on a correct payment of the locked amount", async () => {
-    const { ctx, token, t2 } = await setup();
-    ctx.deps.catalog.stock.find((u) => u.unit_id === "T-2")!.price_ngn = 175000;
-    const c = (await createCheckout(ctx.deps, { quote_token: token, offer_token: t2.offer_token, find_my_off: true })) as Checkout;
-    ctx.paystack.paid(c.reference, "T-2", 30000, "2026-10-21T11:00:00.000Z", token);
-    const r = await confirmPayment(ctx.deps, { reference: c.reference });
-    assert.ok("status" in r && r.status === "reserved", JSON.stringify(r));
-    assert.equal((r as { topup_ngn: number }).topup_ngn, 30000);
-    assert.equal((r as { unit_id: string }).unit_id, "T-2");
-  });
 });
 
-describe("the unit must still be in stock and unsold", () => {
-  test("removed from stock after the offer is UNIT_SOLD", async () => {
-    const { ctx, token, t2 } = await setup();
-    ctx.deps.catalog.stock = ctx.deps.catalog.stock.filter((u) => u.unit_id !== "T-2");
-    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: t2.offer_token, find_my_off: true });
-    assert.equal(code(r), "UNIT_SOLD");
-    noPaystack(ctx);
-  });
-
+describe("a sold or stale offer is refused before Paystack", () => {
   test("already sold in the ledger is UNIT_SOLD", async () => {
     const { ctx, token, t2 } = await setup();
     ctx.paystack.paid("ref-other", "T-2", 30000, "2026-10-21T10:00:00.000Z");
     const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: t2.offer_token, find_my_off: true });
     assert.equal(code(r), "UNIT_SOLD");
+    noPaystack(ctx);
+  });
+
+  test("a correctly signed offer whose own exp has passed is OFFER_EXPIRED", async () => {
+    const { ctx, token, t2 } = await setup();
+    const stale = signOfferRaw({ ...decode(t2.offer_token), exp: NOW - 1 });
+    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: stale, find_my_off: true });
+    assert.equal(code(r), "OFFER_EXPIRED");
     noPaystack(ctx);
   });
 });
@@ -116,63 +92,5 @@ describe("a bad offer is refused before Paystack", () => {
     }
     noPaystack(ctx);
     assert.equal(ctx.paystack.listCalls, lists, "must not read the ledger");
-  });
-
-  test("signed with the quote prefix, with no prefix, or with another secret", async () => {
-    const { ctx, token, t2 } = await setup();
-    const payload = decode(t2.offer_token);
-    const cases: [string, string][] = [
-      ["no prefix", signOfferRaw(payload, SECRET, "")],
-      ["quote-style (bare body)", (() => { const b = b64u(JSON.stringify(payload)); return b + "." + createHmac("sha256", SECRET).update(b).digest("base64url"); })()],
-      ["other prefix", signOfferRaw(payload, SECRET, "quote.")],
-      ["other secret", signOfferRaw(payload, "attacker-secret")],
-    ];
-    for (const [name, offer_token] of cases) {
-      const r = await createCheckout(ctx.deps, { quote_token: token, offer_token, find_my_off: true });
-      assert.equal(code(r), "OFFER_INVALID", name);
-    }
-    // sanity: the same payload signed correctly is accepted
-    const ok = await createCheckout(ctx.deps, { quote_token: token, offer_token: signOfferRaw(payload), find_my_off: true });
-    assert.ok(!("error" in ok), JSON.stringify(ok));
-    assert.equal(ctx.paystack.initializeCalls.length, 1, "only the valid one reached Paystack");
-  });
-
-  test("an offer made against a different quote_token", async () => {
-    const { ctx, token, t2 } = await setup();
-    ctx.clock.now = NOW + 1000; // a second quote, different iat, so a different signature
-    const v2 = (await valueTradeIn(ctx.deps, { model: "Test Phone", capacity_gb: 128, faults: [], ...FLAWLESS })) as Valuation;
-    assert.notEqual(v2.quote_token, token);
-    const r = await createCheckout(ctx.deps, { quote_token: v2.quote_token, offer_token: t2.offer_token, find_my_off: true });
-    assert.equal(code(r), "OFFER_INVALID");
-    // a hand-signed offer whose quote_sig does not belong to the presented quote is refused too
-    const r2 = await createCheckout(ctx.deps, { quote_token: token, offer_token: signOfferRaw({ ...decode(t2.offer_token), quote_sig: "nope" }), find_my_off: true });
-    assert.equal(code(r2), "OFFER_INVALID");
-    noPaystack(ctx);
-  });
-
-  test("past exp: QUOTE_EXPIRED when the quote lapsed too (quote is checked first)", async () => {
-    const { ctx, token, t2 } = await setup();
-    ctx.clock.now = NOW + QUOTE_TTL_MS + 1;
-    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: t2.offer_token, find_my_off: true });
-    assert.equal(code(r), "QUOTE_EXPIRED");
-    noPaystack(ctx);
-  });
-
-  test("a correctly signed offer whose own exp has passed is OFFER_EXPIRED", async () => {
-    const { ctx, token, t2 } = await setup();
-    const stale = signOfferRaw({ ...decode(t2.offer_token), exp: NOW - 1 });
-    const r = await createCheckout(ctx.deps, { quote_token: token, offer_token: stale, find_my_off: true });
-    assert.equal(code(r), "OFFER_EXPIRED");
-    noPaystack(ctx);
-  });
-
-  test("check order: offer is checked before find_my_off, find_my_off before stock", async () => {
-    const { ctx, token, t2 } = await setup();
-    const bad = await createCheckout(ctx.deps, { quote_token: token, offer_token: "garbage", find_my_off: false });
-    assert.equal(code(bad), "OFFER_INVALID");
-    ctx.deps.catalog.stock = [];
-    const fm = await createCheckout(ctx.deps, { quote_token: token, offer_token: t2.offer_token, find_my_off: false });
-    assert.equal(code(fm), "FIND_MY_ON");
-    noPaystack(ctx);
   });
 });

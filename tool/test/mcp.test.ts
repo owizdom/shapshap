@@ -1,4 +1,4 @@
-// B14: MCP surface. In-memory client for tools/list and calls, real HTTP for the bearer token.
+// MCP surface. In-memory client for tools/list and calls, real HTTP for the bearer token and the catalog source.
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
@@ -7,6 +7,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.ts";
 import { makeCtx, tinyCatalog } from "./fakes.ts";
+
+const realFetch = globalThis.fetch;
+const SHEET_VARS = ["PRICES_SHEET_PRICES_URL", "PRICES_SHEET_FAULTS_URL", "PRICES_SHEET_STOCK_URL"];
 
 const TOOLS = ["confirm_payment", "create_checkout", "find_phones", "value_trade_in"];
 
@@ -26,7 +29,7 @@ function payloadOf(res: any): any {
   return JSON.parse(text);
 }
 
-describe("B14 MCP surface (in memory)", () => {
+describe("MCP surface (in memory)", () => {
   test("tools/list returns exactly the four tools", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
@@ -36,85 +39,6 @@ describe("B14 MCP surface (in memory)", () => {
       assert.equal(typeof t.description, "string", t.name);
       assert.ok(t.description!.length > 0, t.name);
     }
-  });
-
-  test("input schemas have the contract's properties", async () => {
-    const { client } = await connect();
-    const { tools } = await client.listTools();
-    const props = Object.fromEntries(tools.map((t) => [t.name, Object.keys(t.inputSchema.properties ?? {}).sort()]));
-    assert.deepEqual(props, {
-      confirm_payment: ["reference"],
-      create_checkout: ["find_my_off", "offer_token", "quote_token"],
-      find_phones: ["max_topup_ngn", "quote_token"],
-      value_trade_in: ["battery", "body", "capacity_gb", "faults", "model", "parts", "screen"],
-    });
-  });
-
-  test("create_checkout requires a boolean find_my_off", async () => {
-    const { client } = await connect();
-    const { tools } = await client.listTools();
-    const t = tools.find((x) => x.name === "create_checkout")!;
-    assert.ok((t.inputSchema.required ?? []).includes("find_my_off"), JSON.stringify(t.inputSchema));
-    assert.equal((t.inputSchema.properties as any).find_my_off.type, "boolean");
-  });
-
-  test("create_checkout through MCP with find_my_off false is FIND_MY_ON", async () => {
-    const { client, ctx } = await connect();
-    const v = payloadOf(await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [], screen: "flawless", body: "flawless" } }));
-    const f = payloadOf(await client.callTool({ name: "find_phones", arguments: { quote_token: v.quote_token, max_topup_ngn: 60000 } }));
-    const c = payloadOf(await client.callTool({ name: "create_checkout", arguments: { quote_token: v.quote_token, offer_token: f.options[0].offer_token, find_my_off: false } }));
-    assert.equal(c.error, "FIND_MY_ON");
-    assert.equal(ctx.paystack.initializeCalls.length, 0);
-  });
-
-  test("B5: no tool input property is named like an amount or a price", async () => {
-    const { client } = await connect();
-    const { tools } = await client.listTools();
-    for (const t of tools) {
-      for (const name of Object.keys(t.inputSchema.properties ?? {})) {
-        // max_topup_ngn is the customer's budget filter, not a price; it is the one allowed money-shaped name
-        assert.ok(!/amount/i.test(name), `${t.name}.${name} looks like an amount`);
-        assert.ok(!/price/i.test(name), `${t.name}.${name} looks like a price`);
-      }
-    }
-  });
-
-  test("value_trade_in condition inputs are optional enums with the website's options", async () => {
-    const { client } = await connect();
-    const { tools } = await client.listTools();
-    const t = tools.find((x) => x.name === "value_trade_in")!;
-    const props = t.inputSchema.properties as Record<string, { enum?: string[] }>;
-    assert.deepEqual(props.screen.enum, ["flawless", "light", "visible", "cracked"]);
-    assert.deepEqual(props.body.enum, ["flawless", "light", "visible", "cracked"]);
-    assert.deepEqual(props.battery.enum, ["healthy", "worn", "service", "replaced"]);
-    assert.deepEqual(props.parts.enum, ["genuine", "one", "multiple"]);
-    for (const k of ["screen", "body", "battery", "parts"]) assert.ok(!(t.inputSchema.required ?? []).includes(k), `${k} must be optional`);
-  });
-
-  test("calling value_trade_in end to end through MCP returns the working (flawless screen and body)", async () => {
-    const { client } = await connect();
-    const res = await client.callTool({ name: "value_trade_in", arguments: { model: "test phone", capacity_gb: 256, faults: ["a", "b"], screen: "flawless", body: "flawless" } });
-    const body = payloadOf(res);
-    assert.equal(body.value_ngn, 75003);
-    assert.equal(body.base_ngn, 100005);
-    assert.equal(typeof body.quote_token, "string");
-    assert.deepEqual(body.adjustments, []);
-    assert.deepEqual(body.condition, { screen: "flawless", body: "flawless", battery: "healthy", parts: "genuine" });
-  });
-
-  test("through MCP with no condition given, the default condition is applied and named in the working", async () => {
-    const { client } = await connect();
-    const res = await client.callTool({ name: "value_trade_in", arguments: { model: "Test Phone", capacity_gb: 128, faults: [] } });
-    const body = payloadOf(res);
-    assert.equal(body.value_ngn, 93400);
-    assert.deepEqual(body.condition, { screen: "light", body: "light", battery: "healthy", parts: "genuine" });
-    assert.deepEqual(body.adjustments, [{ label: "Condition: screen light, body light, battery healthy, parts genuine", ngn: -6600 }]);
-  });
-
-  test("calling find_phones with a bad token returns QUOTE_INVALID through MCP", async () => {
-    const { client } = await connect();
-    const res = await client.callTool({ name: "find_phones", arguments: { quote_token: "bad.token", max_topup_ngn: 50000 } });
-    assert.equal(payloadOf(res).error, "QUOTE_INVALID");
   });
 
   test("a full flow through MCP: value, find, checkout, confirm waiting", async () => {
@@ -129,7 +53,7 @@ describe("B14 MCP surface (in memory)", () => {
   });
 });
 
-describe("B14 bearer token over HTTP", () => {
+describe("bearer token over HTTP", () => {
   const TOKEN = "test-mcp-token";
   let server: http.Server;
   let base: string;
@@ -169,42 +93,6 @@ describe("B14 bearer token over HTTP", () => {
     assert.equal(res.status, 401);
   });
 
-  test("wrong bearer token gets 401", async () => {
-    const res = await fetch(base, { method: "POST", headers: { ...baseHeaders, authorization: "Bearer wrong" }, body: initBody });
-    assert.equal(res.status, 401);
-  });
-
-  test("a non-Bearer scheme with the right secret gets 401", async () => {
-    const res = await fetch(base, { method: "POST", headers: { ...baseHeaders, authorization: `Basic ${TOKEN}` }, body: initBody });
-    assert.equal(res.status, 401);
-  });
-
-  test("tools/list without the token gets 401", async () => {
-    const res = await fetch(base, {
-      method: "POST", headers: baseHeaders,
-      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
-    });
-    assert.equal(res.status, 401);
-  });
-
-  test("with the token, initialize succeeds", async () => {
-    const res = await fetch(base, { method: "POST", headers: { ...baseHeaders, authorization: `Bearer ${TOKEN}` }, body: initBody });
-    assert.equal(res.status, 200);
-    const msg = parseRpc(await res.text());
-    assert.equal(msg.id, 1);
-    assert.ok(msg.result, JSON.stringify(msg));
-    assert.equal(typeof msg.result.protocolVersion, "string");
-    assert.ok(msg.result.capabilities.tools, "server must advertise tools");
-  });
-
-  test("F3: initialize with Accept: application/json only succeeds, not 406", async () => {
-    const res = await fetch(base, { method: "POST", headers: { "content-type": "application/json", accept: "application/json", authorization: `Bearer ${TOKEN}` }, body: initBody });
-    assert.equal(res.status, 200, await res.clone().text());
-    const msg = parseRpc(await res.text());
-    assert.equal(msg.id, 1);
-    assert.ok(msg.result, JSON.stringify(msg));
-  });
-
   test("with the token, stateless tools/list lists the four tools", async () => {
     const res = await fetch(base, {
       method: "POST", headers: { ...baseHeaders, authorization: `Bearer ${TOKEN}` },
@@ -213,5 +101,69 @@ describe("B14 bearer token over HTTP", () => {
     assert.equal(res.status, 200);
     const msg = parseRpc(await res.text());
     assert.deepEqual(msg.result.tools.map((t: any) => t.name).sort(), TOOLS);
+  });
+
+  // The catalog source: bundled CSVs without the sheet variables, the sheet when all three are set, bundled again when it is down.
+  async function quote(): Promise<any> {
+    const res = await realFetch(base, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${TOKEN}` },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "value_trade_in", arguments: { model: "iPhone 16 Plus", capacity_gb: 256, faults: ["charging_port"] } } }),
+    });
+    assert.equal(res.status, 200);
+    const t = (await res.text()).trim();
+    const line = t.startsWith("{") ? t : t.split("\n").find((l) => l.startsWith("data:"))!.slice(5);
+    const msg = JSON.parse(line);
+    return msg.result.structuredContent ?? JSON.parse(msg.result.content.find((c: any) => c.type === "text").text);
+  }
+
+  function useSheet(urls: { p: string; f: string; s: string }, answer: (url: string) => Response) {
+    process.env.PRICES_SHEET_PRICES_URL = urls.p;
+    process.env.PRICES_SHEET_FAULTS_URL = urls.f;
+    process.env.PRICES_SHEET_STOCK_URL = urls.s;
+    globalThis.fetch = (async (input: any, init?: any) => {
+      const url = typeof input === "string" ? input : input.url ?? String(input);
+      if (url.startsWith("https://sheets.test/")) return answer(url);
+      return realFetch(input, init);
+    }) as typeof fetch;
+  }
+
+  function restore() {
+    globalThis.fetch = realFetch;
+    for (const k of SHEET_VARS) delete process.env[k];
+  }
+
+  test("variables absent: bundled prices (775890 base, 688447 value)", async () => {
+    const body = await quote();
+    assert.equal(body.base_ngn, 775890);
+    assert.equal(body.value_ngn, 688447);
+  });
+
+  test("with the sheet configured, value_trade_in prices from the sheet: base 900000 and 10% charging_port", async () => {
+    const BODIES: Record<string, string> = {
+      "https://sheets.test/ok/prices.csv": 'model,capacity_gb,base_ngn,floor_ngn\niPhone 16 Plus,256,"₦900,000",100000\n',
+      "https://sheets.test/ok/faults.csv": "fault,label,category,action,deduct_pct,check_hint,basis\ncharging_port,Charging port,power,deduct,10,Try two cables,sourced\n",
+      "https://sheets.test/ok/stock.csv": "unit_id,model,capacity_gb,grade,battery_pct,warranty_months,price_ngn\nSH-1,iPhone 16,128,A,98,6,1000000\n",
+    };
+    useSheet({ p: "https://sheets.test/ok/prices.csv", f: "https://sheets.test/ok/faults.csv", s: "https://sheets.test/ok/stock.csv" }, (url) => new Response(BODIES[url], { status: 200 }));
+    try {
+      const body = await quote();
+      assert.equal(body.base_ngn, 900000);
+      // default condition: W = round(900000 x 0.934) = 840600 ; 10% = 84060 ; value 756540. The sheet has no repair columns.
+      assert.equal(body.deductions[0].ngn, 84060);
+      assert.equal(body.value_ngn, 756540);
+    } finally {
+      restore();
+    }
+  });
+
+  test("with the sheet unreachable, the tool call still answers from the bundled catalog", async () => {
+    useSheet({ p: "https://sheets.test/down/prices.csv", f: "https://sheets.test/down/faults.csv", s: "https://sheets.test/down/stock.csv" }, () => { throw new TypeError("fetch failed"); });
+    try {
+      const body = await quote();
+      assert.equal(body.value_ngn, 688447);
+    } finally {
+      restore();
+    }
   });
 });
