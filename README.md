@@ -14,7 +14,9 @@ The cut is in the calculator's own code on [ziggatech.com/pages/iphone-funnel](h
 
 The calculator ends with a WhatsApp button whose message carries the model, storage, the four condition answers and the website's figure, but not the fault. ShapShap is built to sit behind that button with no change to the website. It reads the condition the customer already gave, names the website's figure, and asks only what is wrong and how much they can add. For my phone, a loose charging port, the website's ₦217,404 becomes ₦688,447. The calculator's condition answers map one to one onto `value_trade_in`, because the tool uses the calculator's own multipliers.
 
-![ShapShap in the WhatsApp simulator: the customer's description becomes an itemised valuation](assets/problem/2-shapshap-valuation.png)
+![The calculator's WhatsApp message, pasted into the simulator: ShapShap names the website's figure and asks only the fault and budget](assets/problem/3-calculator-handoff.png)
+
+![The answer becomes an itemised valuation of ₦688,447 and phones from stock](assets/problem/4-handoff-valuation.png)
 
 A demo, not affiliated with Ziggatech. Every phone, price and payment in it is test data.
 
