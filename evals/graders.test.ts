@@ -178,9 +178,9 @@ test("gradeTranscript: every scenario resolves all its graders", () => {
   }
 });
 
-test("scenarios: 12, ids unique, 1 to 3 turns", () => {
-  assert.equal(SCENARIOS.length, 12);
-  assert.equal(new Set(SCENARIOS.map((s) => s.id)).size, 12);
+test("scenarios: 14, ids unique, 1 to 3 turns", () => {
+  assert.equal(SCENARIOS.length, 14);
+  assert.equal(new Set(SCENARIOS.map((s) => s.id)).size, 14);
   for (const s of SCENARIOS) assert.ok(s.turns.length >= 1 && s.turns.length <= 3, s.id);
 });
 
@@ -222,4 +222,47 @@ test("valuation_before_phones: a phone list with no valuation at all fails", () 
   const steps = [{ tool_name: "mcp__ShapShap_tools__value_trade_in", result: "{}" }, { tool_name: "mcp__ShapShap_tools__find_phones", result: "{}" }];
   const tr = { scenario: "x", turns: [{ customer: "x", reply: "- iPhone 16 Plus 128GB, grade A. You add ₦22,000", steps }] } as any;
   assert.equal(GRADERS.valuation_before_phones({ scenario: SCENARIOS[0], transcript: tr }, {}).pass, false);
+});
+
+// Spec 0005 K1: tool_args reads the arguments Chord reports for a tool call.
+const HAND = step("value_trade_in", '{\n  "model" : "iPhone 13",\n  "capacity_gb" : 128,\n  "faults" : [ ],\n  "screen" : "visible",\n  "body" : "cracked",\n  "battery" : "service",\n  "parts" : "one"\n}', { value_ngn: 174817 });
+test("tool_args: every expected value present passes", () => {
+  const r = run("tool_args", tx(turn("t0", "?"), turn("300k", "ok", [HAND])), { tool: "value_trade_in", turn: 1, expect: { screen: "visible", body: "cracked", battery: "service", parts: "one" }, faults: [] , noFaults: true });
+  assert.ok(r.pass, r.detail);
+});
+test("tool_args: a different value fails and names it", () => {
+  const r = run("tool_args", tx(turn("x", "ok", [HAND])), { tool: "value_trade_in", expect: { screen: "light" } });
+  assert.equal(r.pass, false);
+  assert.match(r.detail, /screen/);
+});
+test("tool_args: a missing expected fault fails; a present one passes", () => {
+  const t = tx(turn("x", "ok", [step("value_trade_in", { model: "iPhone 16 Plus", capacity_gb: 256, faults: ["charging_port"] }, {})]));
+  assert.ok(run("tool_args", t, { tool: "value_trade_in", faults: ["charging_port"] }).pass);
+  assert.equal(run("tool_args", t, { tool: "value_trade_in", faults: ["charging_ic"] }).pass, false);
+});
+test("tool_args: noFaults fails when a fault was passed", () => {
+  const t = tx(turn("x", "ok", [step("value_trade_in", { faults: ["no_power"] }, {})]));
+  assert.equal(run("tool_args", t, { tool: "value_trade_in", noFaults: true }).pass, false);
+});
+test("tool_args: expectOrAbsent passes when the argument is left out, fails when it differs", () => {
+  const t = tx(turn("x", "ok", [step("value_trade_in", { faults: ["charging_port"], screen: "light" }, {})]));
+  assert.ok(run("tool_args", t, { tool: "value_trade_in", expectOrAbsent: { screen: "light", body: "light", battery: "healthy", parts: "genuine" } }).pass);
+  assert.equal(run("tool_args", t, { tool: "value_trade_in", expectOrAbsent: { screen: "cracked" } }).pass, false);
+});
+test("tool_args: tool never called, wrong turn, or unreadable arguments fail", () => {
+  assert.equal(run("tool_args", tx(turn("x", "ok")), { tool: "value_trade_in", expect: { screen: "visible" } }).pass, false);
+  assert.equal(run("tool_args", tx(turn("x", "ok", [HAND]), turn("y", "ok")), { tool: "value_trade_in", turn: 1, expect: { screen: "visible" } }).pass, false);
+  assert.equal(run("tool_args", tx(turn("x", "ok", [step("value_trade_in", "not json", {})])), { tool: "value_trade_in", expect: { screen: "visible" } }).pass, false);
+});
+test("tool_args: passes when any one call matches", () => {
+  const t = tx(turn("x", "ok", [step("value_trade_in", { faults: [], screen: "light" }, {}), HAND]));
+  assert.ok(run("tool_args", t, { tool: "value_trade_in", expect: { screen: "visible" } }).pass);
+});
+
+// Review of spec 0005: the condition-question check must catch questions and ignore statements.
+test("CONDITION_QUESTIONS: catches condition questions, ignores statements and the budget question", async () => {
+  const { CONDITION_QUESTIONS } = await import("./scenarios.ts");
+  const forbids = (reply: string) => run("reply_forbids", tx(turn("x", reply)), { any: CONDITION_QUESTIONS, turn: 0 }).pass;
+  for (const q of ["Is the screen cracked?", "How many GB is it?", "Are all the parts original?", "What is the battery percentage?", "How much storage does it have?"]) assert.equal(forbids(q), false, q);
+  for (const s of ["Noted: light wear and battery healthy. What is wrong with it?", "I price the fault, not the condition of the phone. How much can you add?", "What is the most you can add toward a working phone?"]) assert.equal(forbids(s), true, s);
 });

@@ -277,6 +277,41 @@ const reply_forbids: Grader = ({ transcript }, args) => {
   return ok();
 };
 
+// Arguments of one tool call. Chord reports them as a JSON string in step.instruction.
+function argsOf(step: Step): Record<string, unknown> | null {
+  try {
+    const v = typeof step.instruction === "string" ? JSON.parse(step.instruction) : step.instruction;
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch { return null; }
+}
+
+// Passes when one call of the tool has every `expect` value, every `expectOrAbsent` value or leaves it out,
+// every fault in `faults`, and no faults at all when `noFaults` is set.
+const tool_args: Grader = ({ transcript }, args) => {
+  const tool = String(args.tool);
+  const turns = typeof args.turn === "number" ? transcript.turns.slice(args.turn, args.turn + 1) : transcript.turns;
+  const steps = toolSteps(turns, tool);
+  if (steps.length === 0) return bad(`${tool} never called${typeof args.turn === "number" ? ` in turn ${args.turn}` : ""}`);
+  const expect = (args.expect ?? {}) as Record<string, unknown>;
+  const loose = (args.expectOrAbsent ?? {}) as Record<string, unknown>;
+  const faults = toList(args.faults);
+  const problems: string[] = [];
+  for (const s of steps) {
+    const a = argsOf(s);
+    if (!a) { problems.push("arguments unreadable"); continue; }
+    const got = Array.isArray(a.faults) ? a.faults.map(String) : [];
+    const wrong = [
+      ...Object.entries(expect).filter(([k, v]) => a[k] !== v).map(([k, v]) => `${k}=${String(a[k])}, expected ${String(v)}`),
+      ...Object.entries(loose).filter(([k, v]) => k in a && a[k] !== v).map(([k, v]) => `${k}=${String(a[k])}, expected ${String(v)} or absent`),
+      ...faults.filter((f) => !got.includes(f)).map((f) => `fault ${f} missing`),
+      ...(args.noFaults && got.length > 0 ? [`faults ${got.join(",")}, expected none`] : []),
+    ];
+    if (wrong.length === 0) return ok();
+    problems.push(wrong.join("; "));
+  }
+  return bad(`${tool}: ${problems.join(" | ")}`);
+};
+
 const URL_RE = /https?:\/\/[^\s"'\\)<>]+/g;
 
 const no_checkout_link: Grader = ({ transcript }) => {
@@ -298,7 +333,7 @@ const checkout_link_sent: Grader = ({ transcript }) => {
 export const GRADERS: Record<string, Grader> = {
   replied, figures_from_tools, valuation_before_phones, register, plain_english, checkout_gate, reserved_gate,
   no_tool_for, calls_tools, tool_ok, no_echo, forbid_amounts, no_new_figure, reply_matches, reply_forbids,
-  no_checkout_link, checkout_link_sent,
+  no_checkout_link, checkout_link_sent, tool_args,
 };
 
 // Names are unique per scenario: a second use of the same grader gets "#2".
