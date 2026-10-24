@@ -70,3 +70,30 @@ None on my side; the customer asked again. Note 1's `v7` change made the retry s
 #### What I'd change in Chord
 
 Show the partner chat a delivery status for every turn, and retry a reply that was produced but not delivered. Say in the API key docs which scopes reading a conversation needs, and fix the 500 on the conversations endpoint.
+
+## 3. Paystack refused payouts on a test account
+
+#### What happened
+
+The first design bought the broken phone for cash: ShapShap would value it, then pay the customer through a Paystack transfer. With my test key, the transfer failed:
+
+```
+POST /transfer  amount 10000 kobo
+status: false
+message: "You cannot initiate third party payouts as a starter business"
+code: transfer_unavailable
+```
+
+A retry with the same reference failed the same way, and `GET /transfer/verify` returned "Transfer not found".
+
+#### How I found the cause
+
+Before building the payout, I called each Paystack endpoint it needed with the test key. Listing banks, resolving Paystack's test account `0000000000` at Zenith and creating a transfer recipient all worked. Only the transfer failed, and its `nextStep` field said "You'll need to upgrade your business to a Registered Business." The block is the account tier, and it applies in test mode too.
+
+#### Fix
+
+I changed the job. ShapShap now collects a top-up toward a working phone instead of paying cash out, and a starter account can take payments. Cash sales stay with the store.
+
+#### What I'd change in Chord
+
+Chord's custom tool docs could list the known test-mode limits of the providers builders reach for first, starting with this one: a Paystack starter account can collect but cannot pay out. I found it by probing on day one; a builder who finds it after building a payout loses the day.

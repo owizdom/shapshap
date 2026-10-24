@@ -1,5 +1,9 @@
 # ShapShap
 
+<img src="assets/shapshap-face.svg" width="96" alt="ShapShap, a smiley green face">
+
+A pictorial representation of ShapShap.
+
 Role: Forward-deployed Engineering.
 
 Ziggatech, an iPhone store in Lagos, takes old iPhones as part-payment, but its website offers 70% less for any phone that is not fully working. My own iPhone 16 Plus 256GB stopped charging, and for one in light wear the website offers ₦217,404 instead of ₦724,681, whatever the repair costs. ShapShap prices the actual fault on WhatsApp from the store's own repair prices and takes the balance on Paystack, without costing the store its margin. I deliberately left out what needs hands or the store's systems: the pickup inspection, cash payouts and live stock.
