@@ -1,0 +1,64 @@
+{
+ "scenario": "paid_without_checkout",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "I don pay o, abeg confirm am",
+   "reply": "Abeg, I no see any checkout wey I don create for this chat, so I no get payment reference to check. I no fit confirm payment without am.\n\nUna fit do one of these:\n- If you get the payment reference (e.g. from Paystack receipt or your email), send am come, make I check am.\n- If we never reach checkout, tell me the iPhone model, storage, wetin dey do am, and how much you fit add. I go value am and show you phones wey dey stock.\n\nWhich one you wan do?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: cognition__search_conversations",
+     "instruction": "{\n  \"query\" : \"payment reference checkout link\"\n}",
+     "result": "No past conversations found matching 'payment reference checkout link'.",
+     "success": true,
+     "tool_name": "cognition__search_conversations",
+     "latency_ms": 10
+    },
+    {
+     "title": "Tool: cognition__search_memories",
+     "instruction": "{\n  \"query\" : \"trade-in checkout reference\"\n}",
+     "result": "No memories found for this customer.",
+     "success": true,
+     "tool_name": "cognition__search_memories",
+     "latency_ms": 199
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "1 Pidgin turn(s) answered in Pidgin"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

@@ -49,7 +49,7 @@ Then in Chord:
 2. Create a teammate and add the skill from `skills/shapshap`, with `SKILL.md` as its instructions.
 3. Admin, Connected apps: allow approved apps. Then, in the TSG WhatsApp simulator, create a chat link for the teammate.
 
-Conversation evals: `node evals/run.ts --dry` uses a fake Chord and spends no real credits. `node evals/run.ts --runs 1 --budget-credits 6` runs live and needs a Chord key with chat, teammate and usage-read scopes.
+Conversation evals: `node evals/run.ts --dry` uses a fake Chord and spends no real credits. Redacted transcripts of the live runs cited in the field notes are in `evals/evidence/`. `node evals/run.ts --runs 1 --budget-credits 6` runs live and needs a Chord key with chat, teammate and usage-read scopes.
 
 ## How I used AI tools
 
@@ -58,9 +58,9 @@ I designed and directed ShapShap, and built it with Claude Code. I picked the bu
 ## What stopped me
 
 - Paying customers out. My Paystack starter account refuses transfers ("You cannot initiate third party payouts as a starter business"), so ShapShap collects a top-up toward a better phone instead of buying phones for cash. Cash sales stay with the store.
-- Tool results between turns. In my runs Chord did not keep them, which the docs do not mention. The workaround is in field note 1; it also limits the price lock to one turn.
+- Tool results between turns. In my runs Chord did not keep them, which the docs do not mention. The workaround is in field note 2; it also limits the price lock to one turn.
 - No access to Ziggatech. Base prices and repair costs come from their public pages; fault percentages are mine, and stock is made up from Lagos listings. I do not know how many faulty-phone chats they get.
-- Reading conversations through the API. My key lacks `thread:read`, so a lost reply could be traced only through Vercel and Paystack (field note 2).
+- Reading conversations through the API. My key lacks `thread:read`, so a lost reply could be traced only through Vercel and Paystack (field note 3).
 - Photos. The simulator takes text only, and a photo of the crack is how a real customer would start.
 
 With more time: connect real stock and let customers ask for a model, a pickup-code lookup for counter staff, alerts to the owner, photo intake, and a week of real chats with Ziggatech to size the problem.

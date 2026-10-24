@@ -1,0 +1,68 @@
+{
+ "scenario": "english_happy",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hello, my iPhone 14 Pro 256GB screen is black and not responding. I can add 200k.",
+   "reply": "Sorry about the screen. We can get you sorted. So that's an iPhone 14 Pro 256GB with a black, unresponsive screen, and you can add up to ₦200,000.\n\nYour phone: ₦630,000\nScreen black or not responding to touch: minus ₦157,500\nRounded down to the nearest 1,000: ₦-500\nValue of your phone: ₦472,000\n(final when we check it at pickup; this price holds 48 hours)\n\nPhones you can take, cheapest top-up first:\n1. iPhone 14 128GB, grade B, battery 85%, 6 months warranty. You add ₦33,000\n2. iPhone 14 128GB, grade A, battery 92%, 6 months warranty. You add ₦43,000\n3. iPhone 14 128GB, grade A, battery 90%, 6 months warranty. You add ₦43,000\n\nGrade A is like new. Grade B has light visible wear. Both work fully.\n\nWhich one would you like?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__SharpSharp_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 14 Pro\",\n  \"capacity_gb\" : 256,\n  \"faults\" : [ \"screen_dead\" ]\n}",
+     "result": "{\"quote_token\":\"…c4GSpN_4\",\"model\":\"iPhone 14 Pro\",\"capacity_gb\":256,\"base_ngn\":630000,\"deductions\":[{\"fault\":\"screen_dead\",\"label\":\"Screen black or not responding to touch\",\"ngn\":157500}],\"adjustments\":[{\"label\":\"Rounded down to the nearest 1,000\",\"ngn\":-500}],\"value_ngn\":472000,\"valid_until\":\"2026-10-23T17:36:08.870Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__value_trade_in",
+     "latency_ms": 90
+    },
+    {
+     "title": "Tool: mcp__SharpSharp_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…c4GSpN_4\",\n  \"max_topup_ngn\" : 200000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1402\",\"model\":\"iPhone 14\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":85,\"warranty_months\":6,\"price_ngn\":505000,\"topup_ngn\":33000,\"offer_token\":\"…ZFOQw2YM\"},{\"unit_id\":\"SS-1401\",\"model\":\"iPhone 14\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":92,\"warranty_months\":6,\"price_ngn\":515000,\"topup_ngn\":43000,\"offer_token\":\"…vxrXuiPM\"},{\"unit_id\":\"SS-1403\",\"model\":\"iPhone 14\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":90,\"warranty_months\":6,\"price_ngn\":515000,\"topup_ngn\":43000,\"offer_token\":\"…aQsRQWQU\"}]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__find_phones",
+     "latency_ms": 322
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "tool_ok": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "plain_english": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

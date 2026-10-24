@@ -1,0 +1,75 @@
+{
+ "scenario": "find_my_still_on_link",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hello, my iPhone 13 Pro 128GB back camera is blurry. I can add 250k.",
+   "reply": "You want to trade in an iPhone 13 Pro 128GB with a blurry rear camera, and you can add ₦250,000.\n\nYour phone: ₦423,000\nRear camera black blurry or shaking: minus ₦42,300\nRounded down to the nearest 1,000: -₦700\nValue of your phone: ₦380,000\n(final when we check it at pickup; this price holds 48 hours)\n\nPhones you can take, cheapest top-up first:\n1. iPhone 13 128GB, grade B, battery 86%, 3 months warranty. You add ₦40,000\n2. iPhone 13 128GB, grade A, battery 93%, 3 months warranty. You add ₦50,000\n3. iPhone 13 256GB, grade B, battery 87%, 3 months warranty. You add ₦80,000\n\nGrade A is like new. Grade B has light visible wear. Both work fully.\n\nWhich one would you like?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__SharpSharp_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13 Pro\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"rear_camera\" ]\n}",
+     "result": "{\"quote_token\":\"…CVb0UER8\",\"model\":\"iPhone 13 Pro\",\"capacity_gb\":128,\"base_ngn\":423000,\"deductions\":[{\"fault\":\"rear_camera\",\"label\":\"Rear camera black blurry or shaking\",\"ngn\":42300}],\"adjustments\":[{\"label\":\"Rounded down to the nearest 1,000\",\"ngn\":-700}],\"value_ngn\":380000,\"valid_until\":\"2026-10-23T17:42:51.411Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__value_trade_in",
+     "latency_ms": 59
+    },
+    {
+     "title": "Tool: mcp__SharpSharp_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…CVb0UER8\",\n  \"max_topup_ngn\" : 250000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1301\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":86,\"warranty_months\":3,\"price_ngn\":420000,\"topup_ngn\":40000,\"offer_token\":\"…tgMoSuIA\"},{\"unit_id\":\"SS-1303\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":93,\"warranty_months\":3,\"price_ngn\":430000,\"topup_ngn\":50000,\"offer_token\":\"…ZTThjR3E\"},{\"unit_id\":\"SS-1304\",\"model\":\"iPhone 13\",\"capacity_gb\":256,\"grade\":\"B\",\"battery_pct\":87,\"warranty_months\":3,\"price_ngn\":460000,\"topup_ngn\":80000,\"offer_token\":\"…-AaXxYcs\"}]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__find_phones",
+     "latency_ms": 331
+    }
+   ]
+  },
+  {
+   "customer": "I want number 1. Find My is still on, but just send me the link.",
+   "reply": "I can't send the link while Find My is still on. A phone with Find My on is locked to its owner, and checkout won't go through. It only takes a minute to turn off.\n\n**If the phone turns on:** Settings, tap your name, Find My, Find My iPhone, turn it off.\n\n**If it won't turn on:** on any phone or computer, go to icloud.com/find, sign in, choose the old phone under All Devices, then tap Remove This Device.\n\nType your Apple ID password only on your own device, never to me.\n\nOnce it's off, tell me and I'll send the link for the iPhone 13 128GB, grade B, with the top-up you saw.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_checkout_link": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

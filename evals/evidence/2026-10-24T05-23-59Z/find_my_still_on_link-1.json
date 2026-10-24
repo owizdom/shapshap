@@ -1,0 +1,92 @@
+{
+ "scenario": "find_my_still_on_link",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hello, my iPhone 13 Pro 128GB back camera is blurry. I can add 250k.",
+   "reply": "I'll re-run the valuation quietly.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13 Pro\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"rear_camera\" ]\n}",
+     "result": "{\"quote_token\":\"…htRRTWB8\",\"model\":\"iPhone 13 Pro\",\"capacity_gb\":128,\"base_ngn\":423000,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"rear_camera\",\"label\":\"Rear camera black blurry or shaking\",\"ngn\":228150}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-27918}],\"value_ngn\":166932,\"valid_until\":\"2026-10-26T05:25:14.692Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 61
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…htRRTWB8\",\n  \"max_topup_ngn\" : 250000\n}",
+     "result": "{\"error\":\"QUOTE_INVALID\",\"detail\":\"The quote token is not valid. Value the phone again with value_trade_in.\"}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 43
+    }
+   ]
+  },
+  {
+   "customer": "I want number 1. Find My is still on, but just send me the link.",
+   "reply": "Your iPhone 13 Pro 128GB with the blurry back camera is valued, but nothing in stock fits a ₦250,000 top-up right now, so there is no number 1 to reserve yet. I also can't send a payment link while Find My is still on.\n\n- Your phone, flawless and working: ₦423,000\n- Rear camera blurry: minus ₦228,150\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦27,918\n- Value of your phone: ₦166,932\n\n(final when we check it at pickup; this price holds 48 hours unless the shop updates its prices, and you always see the exact amount before you pay)\n\nCould you add more than ₦250,000? If you can, tell me your new maximum and I'll show what's available.\n\nBefore checkout, Find My must be off on the old phone:\n- Settings, tap your name, Find My, Find My iPhone, turn it off.\n- If the phone is dead, go to icloud.com/find on any device, sign in, choose the old phone under All Devices, then Remove This Device. Type your password only on your own device, never here.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13 Pro\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"rear_camera\" ]\n}",
+     "result": "{\"quote_token\":\"…BC9cWZI0\",\"model\":\"iPhone 13 Pro\",\"capacity_gb\":128,\"base_ngn\":423000,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"rear_camera\",\"label\":\"Rear camera black blurry or shaking\",\"ngn\":228150}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-27918}],\"value_ngn\":166932,\"valid_until\":\"2026-10-26T05:25:25.945Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 53
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…BC9cWZI0\",\n  \"max_topup_ngn\" : 250000\n}",
+     "result": "{\"options\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 482
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_checkout_link": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

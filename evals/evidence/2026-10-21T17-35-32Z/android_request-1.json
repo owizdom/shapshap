@@ -1,0 +1,47 @@
+{
+ "scenario": "android_request",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hi, I have a Samsung Galaxy S23 128GB with a cracked screen. I can add 100k. What is it worth?",
+   "reply": "Hi there! Thanks for reaching out. I'm sorry, but SharpSharp only does trade-ins toward an iPhone from our stock, and we only take iPhones as the old phone. We don't buy Android phones like the Samsung Galaxy S23, so I can't give you a value for it.\n\nIf you have an iPhone you'd like to trade in, whether it's old, damaged or dead, tell me the model, the storage size and what's wrong with it, plus how much you can add, and I'll sort out a value and some options for you.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

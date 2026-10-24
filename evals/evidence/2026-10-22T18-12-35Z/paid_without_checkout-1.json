@@ -1,0 +1,64 @@
+{
+ "scenario": "paid_without_checkout",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "I don pay o, abeg confirm am",
+   "reply": "Abeg, I no see any order ref for this chat, and I no fit confirm payment without am. The ref dey inside the message wey I send with your payment link, e.g. \"Order ref: ...\" (e.g. \"Order ref: ...\").\n\nAbeg do one of these:\n- Check the message wey carry the Paystack link, copy the Order ref, and send am give me.\n- If you never reach checkout before, tell me your phone model, storage in GB, wetin dey do am, and the most you fit add. I go value am and show you phones wey dey stock.\n\nMake you no send card details, PIN or password for here.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: cognition__search_conversations",
+     "instruction": "{\n  \"query\" : \"Order ref checkout payment link\"\n}",
+     "result": "No past conversations found matching 'Order ref checkout payment link'.",
+     "success": true,
+     "tool_name": "cognition__search_conversations",
+     "latency_ms": 13
+    },
+    {
+     "title": "Tool: cognition__search_memories",
+     "instruction": "{\n  \"query\" : \"order ref checkout reference\"\n}",
+     "result": "No memories found for this customer.",
+     "success": true,
+     "tool_name": "cognition__search_memories",
+     "latency_ms": 188
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "1 Pidgin turn(s) answered in Pidgin"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

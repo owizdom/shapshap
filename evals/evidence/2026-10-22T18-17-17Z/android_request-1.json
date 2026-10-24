@@ -1,0 +1,47 @@
+{
+ "scenario": "android_request",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hi, I have a Samsung Galaxy S23 128GB with a cracked screen. I can add 100k. What is it worth?",
+   "reply": "Hi! I'm sorry, but this chat only does iPhone trade-ins toward an iPhone from our stock, so I can't value a Samsung Galaxy S23. Android phones, repairs and cash sales are handled by the store itself.\n\nIf you have an iPhone you'd like to trade in, tell me the model, storage size and what's wrong with it, and I'll work out its value and show you the phones you can swap to.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "scenario": "english_happy",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hello, my iPhone 14 Pro 256GB screen is black and not responding. I can add 200k.",
+   "reply": "\"Screen black and not responding\" while the phone may still be on fits screen_dead, but if the phone doesn't turn on at all it would be no_power. I'll ask one question to tell them apart.\n\nQuick question: when someone calls or a notification comes in, does the phone still ring or vibrate while the screen stays black? Or does it seem completely dead, with no sign of power at all?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: cognition__skill_read_file",
+     "instruction": "{\n  \"skill_id\" : \"81e66d59-8e7d-4dc4-9750-60cc1504d5e4\",\n  \"revision_id\" : \"0b6ea763-58b3-425b-ae38-4937f5f54801\",\n  \"path\" : \"shapshap/references/faults.md\"\n}",
+     "result": "shapshap/references/faults.md [characters 0..6155 of 6155]\n# Faults: self-checks and phrasings\n\nThe key, what to ask the customer to check, and how people describe it. Send only these keys to value_trade_in.\n\n## Power and charging\n\n- **charging_port** (deduct): Charges only with wiggling or one cable; wireless charging works. Check: Try two cables and a wall socket; does wireless or MagSafe charging work?\n- **charging_ic** (inspect): Does not charge with any cable or wirelessly. Check: 30 min on a wall socket with two cables, then force restart\n- **no_power** (inspect): Does not turn on. Check: Charge one hour, then volume up, volume down, hold side button\n- **boot_loop** (inspect): Stuck on Apple logo or restarts by itself. Check: Does it pass the Apple logo and reach the lock screen?\n\n## Screen\n\n- **screen_dead** (deduct): Screen black or not responding to touch. Check: Does it ring or vibrate while the screen stays black?\n- **display_lines** (deduct): Lines green line flicker or tint on screen. Check: Open a plain white page; any line or tint?\n- **oled_burn_in** (deduct): Faint ghost image stays on screen. Check: Plain grey image at full brightness; any keyboard or bar outline?\n- **touch_fault** (deduct): Ghost touch or dead touch area. Check: Drag a jiggling app icon to every corner; does it drop?\n\n## Battery\n\n- **battery_swollen** (inspect): Screen or back lifting from battery. Check: Does the screen lift at an edge or the phone rock on a table?\n\n## Cameras and Face ID\n\n- **face_id** (deduct): Face ID not working or not available. Check: Settings > Face ID & Passcode > Set Up Face ID\n- **rear_camera** (deduct): Rear camera black blurry or shaking. Check: Open Camera; try every zoom; any black blur or buzzing?\n- **front_camera** (deduct): Selfie camera black or blurry. Check: Switch to selfie camera and take a photo; then test Face ID\n- **camera_lens_cracked** (deduct): Glass over rear camera cracked. Check: Look at the glass rings over the rear lenses\n- **flash\n... [truncated]",
+     "success": true,
+     "tool_name": "cognition__skill_read_file",
+     "latency_ms": 3
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": false,
+   "detail": "not called: value_trade_in, find_phones"
+  },
+  "tool_ok": {
+   "pass": false,
+   "detail": "value_trade_in never called"
+  },
+  "plain_english": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

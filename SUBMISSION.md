@@ -27,9 +27,9 @@ This repo. The [README](README.md) covers how to run it, how I used AI tools, an
 
 [FIELD-NOTES.md](FIELD-NOTES.md)
 
-1. Chord drops tool results between turns, so the agent re-ran its tools and disowned its own figures.
-2. A reply with a payment link never reached the simulator chat.
-3. Paystack refused payouts on a test account, so ShapShap collects a top-up instead of paying cash.
+1. A shorter skill passed every unit test and broke 4 of 12 live conversations; a harness that replays scripted customers through Chord caught it.
+2. Chord drops tool results between turns, so the agent re-ran its tools and disowned its own figures.
+3. A reply with a payment link never reached the simulator chat.
 
 ## 5. Go-live note
 

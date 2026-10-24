@@ -1,0 +1,87 @@
+{
+ "scenario": "dead_phone_find_my_help",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "My iPhone 12 128GB don dead finish, e no dey come on. I fit add 450k.",
+   "reply": "Dead phone? No wahala, we go sort am shap shap!\n\niPhone 12, 128GB, e no dey come on at all, and you fit add ₦450,000.\n\n- Your phone, flawless and working: ₦238,960\n- Does not turn on: minus ₦133,913\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦15,771\n- Value of your phone: ₦89,276\n\nThe \"does not turn on\" amount na provisional until we check the phone at pickup. The final price go dey confirmed there. This price dey hold for 48 hours unless the shop update its prices, and you go always see the exact amount before you pay.\n\nPhones wey you fit take, cheapest top-up first:\n1. iPhone 13 128GB, grade B, battery 86%, 12 months warranty. You add ₦330,724\n2. iPhone 13 128GB, grade A, battery 93%, 12 months warranty. You add ₦340,724\n3. iPhone 13 256GB, grade B, battery 87%, 12 months warranty. You add ₦370,724\n\nGrade A na like new, grade B get light visible wear. Both work well well.\n\nWhich one you want?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: cognition__skill_read_file",
+     "instruction": "{\n  \"skill_id\" : \"81e66d59-8e7d-4dc4-9750-60cc1504d5e4\",\n  \"revision_id\" : \"0b6ea763-58b3-425b-ae38-4937f5f54801\",\n  \"path\" : \"shapshap/references/faults.md\"\n}",
+     "result": "shapshap/references/faults.md [characters 0..6155 of 6155]\n# Faults: self-checks and phrasings\n\nThe key, what to ask the customer to check, and how people describe it. Send only these keys to value_trade_in.\n\n## Power and charging\n\n- **charging_port** (deduct): Charges only with wiggling or one cable; wireless charging works. Check: Try two cables and a wall socket; does wireless or MagSafe charging work?\n- **charging_ic** (inspect): Does not charge with any cable or wirelessly. Check: 30 min on a wall socket with two cables, then force restart\n- **no_power** (inspect): Does not turn on. Check: Charge one hour, then volume up, volume down, hold side button\n- **boot_loop** (inspect): Stuck on Apple logo or restarts by itself. Check: Does it pass the Apple logo and reach the lock screen?\n\n## Screen\n\n- **screen_dead** (deduct): Screen black or not responding to touch. Check: Does it ring or vibrate while the screen stays black?\n- **display_lines** (deduct): Lines green line flicker or tint on screen. Check: Open a plain white page; any line or tint?\n- **oled_burn_in** (deduct): Faint ghost image stays on screen. Check: Plain grey image at full brightness; any keyboard or bar outline?\n- **touch_fault** (deduct): Ghost touch or dead touch area. Check: Drag a jiggling app icon to every corner; does it drop?\n\n## Battery\n\n- **battery_swollen** (inspect): Screen or back lifting from battery. Check: Does the screen lift at an edge or the phone rock on a table?\n\n## Cameras and Face ID\n\n- **face_id** (deduct): Face ID not working or not available. Check: Settings > Face ID & Passcode > Set Up Face ID\n- **rear_camera** (deduct): Rear camera black blurry or shaking. Check: Open Camera; try every zoom; any black blur or buzzing?\n- **front_camera** (deduct): Selfie camera black or blurry. Check: Switch to selfie camera and take a photo; then test Face ID\n- **camera_lens_cracked** (deduct): Glass over rear camera cracked. Check: Look at the glass rings over the rear lenses\n- **flash\n... [truncated]",
+     "success": true,
+     "tool_name": "cognition__skill_read_file",
+     "latency_ms": 3
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 12\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"no_power\" ]\n}",
+     "result": "{\"quote_token\":\"…SdSeZ7Yg\",\"model\":\"iPhone 12\",\"capacity_gb\":128,\"base_ngn\":238960,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"no_power\",\"label\":\"Does not turn on\",\"ngn\":133913}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-15771}],\"value_ngn\":89276,\"valid_until\":\"2026-10-24T18:14:52.703Z\",\"inspect_faults\":[{\"fault\":\"no_power\",\"label\":\"Does not turn on\"}]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 40
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…SdSeZ7Yg\",\n  \"max_topup_ngn\" : 450000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1301\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":86,\"warranty_months\":12,\"price_ngn\":420000,\"topup_ngn\":330724,\"offer_token\":\"…ByyMKBHE\"},{\"unit_id\":\"SS-1303\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":93,\"warranty_months\":12,\"price_ngn\":430000,\"topup_ngn\":340724,\"offer_token\":\"…WC0LTac8\"},{\"unit_id\":\"SS-1304\",\"model\":\"iPhone 13\",\"capacity_gb\":256,\"grade\":\"B\",\"battery_pct\":87,\"warranty_months\":12,\"price_ngn\":460000,\"topup_ngn\":370724,\"offer_token\":\"…nDuC4eoA\"}]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 306
+    }
+   ]
+  },
+  {
+   "customer": "I like number 1. How I go off Find My? The phone no dey on.",
+   "reply": "Number 1 na iPhone 13 128GB, grade B, and you go add ₦330,724. Since the phone no dey on, you go off Find My from another device:\n\n- Open icloud.com/find for any phone or computer.\n- Sign in with your Apple ID. Type your password for your own device only, no send am to me.\n- Click \"All Devices\" and choose the old iPhone 12.\n- Click \"Remove This Device\" (if e ask, confirm am).\n\nWhen e don off, tell me say \"Find My don off\" and I go send you the payment link.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "2 Pidgin turn(s) answered in Pidgin"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_checkout_link": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

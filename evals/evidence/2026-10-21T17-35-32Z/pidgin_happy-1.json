@@ -1,0 +1,100 @@
+{
+ "scenario": "pidgin_happy",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "abeg my iPhone 16 Plus 256GB no dey charge with cable but wireless charging dey work, I fit add 150k",
+   "reply": "No wahala, we go sort am sharp sharp. So na iPhone 16 Plus 256GB wey no dey charge with cable (wireless dey work), and you fit add ₦150,000.\n\nYour phone: ₦835,000\nCharges only with wiggling or one cable: minus ₦41,750\nRounded down to the nearest 1,000: -₦250\nValue of your phone: ₦793,000\n(final when we check am for pickup; this price hold for 48 hours)\n\nPhones wey you fit take, cheapest top-up first:\n1. iPhone 16 Plus 128GB, grade A, battery 95%, 6 months warranty. You add ₦22,000\n2. iPhone 15 Pro 128GB, grade A, battery 94%, 6 months warranty. You add ₦57,000\n3. iPhone 16 Pro 128GB, grade B, battery 90%, 6 months warranty. You add ₦57,000\n\nGrade A na like new, grade B get light wear, but both dey work well.\n\nWhich one you like?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__SharpSharp_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 16 Plus\",\n  \"capacity_gb\" : 256,\n  \"faults\" : [ \"charging_port\" ]\n}",
+     "result": "{\"quote_token\":\"…drZoFqy8\",\"model\":\"iPhone 16 Plus\",\"capacity_gb\":256,\"base_ngn\":835000,\"deductions\":[{\"fault\":\"charging_port\",\"label\":\"Charges only with wiggling or one cable; wireless charging works\",\"ngn\":41750}],\"adjustments\":[{\"label\":\"Rounded down to the nearest 1,000\",\"ngn\":-250}],\"value_ngn\":793000,\"valid_until\":\"2026-10-23T17:35:37.892Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__value_trade_in",
+     "latency_ms": 961
+    },
+    {
+     "title": "Tool: mcp__SharpSharp_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…drZoFqy8\",\n  \"max_topup_ngn\" : 150000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1602\",\"model\":\"iPhone 16 Plus\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":95,\"warranty_months\":6,\"price_ngn\":815000,\"topup_ngn\":22000,\"offer_token\":\"…No5b1dD4\"},{\"unit_id\":\"SS-1511\",\"model\":\"iPhone 15 Pro\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":94,\"warranty_months\":6,\"price_ngn\":850000,\"topup_ngn\":57000,\"offer_token\":\"…3uzSM8tA\"},{\"unit_id\":\"SS-1611\",\"model\":\"iPhone 16 Pro\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":90,\"warranty_months\":6,\"price_ngn\":850000,\"topup_ngn\":57000,\"offer_token\":\"…9qKPjTMA\"}]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__find_phones",
+     "latency_ms": 339
+    }
+   ]
+  },
+  {
+   "customer": "I go take number 1. Find My don off for the old phone o",
+   "reply": "Your link don ready:\n\nhttps://checkout.paystack.com/[redacted]\n\nAmount to pay: ₦22,000, for the iPhone 16 Plus 128GB grade A.\n\nPay only for this link, and no share card details or PIN with anybody for chat. When you don pay, tell me make I check am.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__SharpSharp_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 16 Plus\",\n  \"capacity_gb\" : 256,\n  \"faults\" : [ \"charging_port\" ]\n}",
+     "result": "{\"quote_token\":\"…etFynKQ8\",\"model\":\"iPhone 16 Plus\",\"capacity_gb\":256,\"base_ngn\":835000,\"deductions\":[{\"fault\":\"charging_port\",\"label\":\"Charges only with wiggling or one cable; wireless charging works\",\"ngn\":41750}],\"adjustments\":[{\"label\":\"Rounded down to the nearest 1,000\",\"ngn\":-250}],\"value_ngn\":793000,\"valid_until\":\"2026-10-23T17:35:49.062Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__value_trade_in",
+     "latency_ms": 34
+    },
+    {
+     "title": "Tool: mcp__SharpSharp_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…etFynKQ8\",\n  \"max_topup_ngn\" : 150000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1602\",\"model\":\"iPhone 16 Plus\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":95,\"warranty_months\":6,\"price_ngn\":815000,\"topup_ngn\":22000,\"offer_token\":\"…TCPuYYyo\"},{\"unit_id\":\"SS-1511\",\"model\":\"iPhone 15 Pro\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":94,\"warranty_months\":6,\"price_ngn\":850000,\"topup_ngn\":57000,\"offer_token\":\"…AS8yewNs\"},{\"unit_id\":\"SS-1611\",\"model\":\"iPhone 16 Pro\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":90,\"warranty_months\":6,\"price_ngn\":850000,\"topup_ngn\":57000,\"offer_token\":\"…6Nriyd5Y\"}]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__find_phones",
+     "latency_ms": 342
+    },
+    {
+     "title": "Tool: mcp__SharpSharp_tools__create_checkout",
+     "instruction": "{\n  \"quote_token\" : \"…etFynKQ8\",\n  \"offer_token\" : \"…TCPuYYyo\",\n  \"find_my_off\" : true\n}",
+     "result": "{\"reference\":\"ss-ss-1602-emelhiy281oi\",\"checkout_url\":\"https://checkout.paystack.com/[redacted]\",\"topup_ngn\":22000,\"unit_id\":\"SS-1602\"}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__create_checkout",
+     "latency_ms": 888
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": false,
+   "detail": "turn 1: no value line with an amount"
+  },
+  "register": {
+   "pass": true,
+   "detail": "2 Pidgin turn(s) answered in Pidgin"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "1 create_checkout call(s) gated"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools#2": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "checkout_link_sent": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

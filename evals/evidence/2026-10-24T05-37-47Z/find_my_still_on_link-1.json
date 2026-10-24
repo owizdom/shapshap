@@ -1,0 +1,92 @@
+{
+ "scenario": "find_my_still_on_link",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hello, my iPhone 13 Pro 128GB back camera is blurry. I can add 250k.",
+   "reply": "Dead phone? Let's turn it into a working one.\n\niPhone 13 Pro, 128GB, blurry rear camera, and you can add ₦250,000.\n\n- Your phone, flawless and working: ₦423,000\n- Rear camera black, blurry or shaking: minus ₦228,150\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦27,918\n- Value of your phone: ₦166,932\n\n(final when we check it at pickup; this price holds 48 hours unless the shop updates its prices, and you always see the exact amount before you pay)\n\nRight now we have no phone in stock that fits a ₦250,000 top-up. Can you add more? If you tell me the most you can add, I will check again.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13 Pro\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"rear_camera\" ]\n}",
+     "result": "{\"quote_token\":\"…DP82Rk4s\",\"model\":\"iPhone 13 Pro\",\"capacity_gb\":128,\"base_ngn\":423000,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"rear_camera\",\"label\":\"Rear camera black blurry or shaking\",\"ngn\":228150}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-27918}],\"value_ngn\":166932,\"valid_until\":\"2026-10-26T05:39:02.582Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 51
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…DP82Rk4s\",\n  \"max_topup_ngn\" : 250000\n}",
+     "result": "{\"options\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 517
+    }
+   ]
+  },
+  {
+   "customer": "I want number 1. Find My is still on, but just send me the link.",
+   "reply": "I'm sorry for the confusion. The valuation is the same as before, and the stock check still shows no phone that fits a ₦250,000 top-up. So there is no number 1 to pick, and I can't send a payment link yet.\n\n- Your phone, flawless and working: ₦423,000\n- Rear camera black, blurry or shaking: minus ₦228,150\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦27,918\n- Value of your phone: ₦166,932\n\nIf you can add more than ₦250,000, tell me the most you can add and I will check again.\n\nBefore any payment link, Find My must be off on your old phone. If the phone turns on, go to Settings, tap your name, then Find My, then Find My iPhone, and turn it off. If it is dead, go to icloud.com/find on any device, sign in, choose the phone under All Devices, then Remove This Device. Enter your password only on your own device, never share it with me.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13 Pro\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"rear_camera\" ]\n}",
+     "result": "{\"quote_token\":\"…bTET0DCc\",\"model\":\"iPhone 13 Pro\",\"capacity_gb\":128,\"base_ngn\":423000,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"rear_camera\",\"label\":\"Rear camera black blurry or shaking\",\"ngn\":228150}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-27918}],\"value_ngn\":166932,\"valid_until\":\"2026-10-26T05:39:14.237Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 46
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…bTET0DCc\",\n  \"max_topup_ngn\" : 250000\n}",
+     "result": "{\"options\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 587
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_checkout_link": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

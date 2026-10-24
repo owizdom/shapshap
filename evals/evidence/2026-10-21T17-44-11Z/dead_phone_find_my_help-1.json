@@ -1,0 +1,79 @@
+{
+ "scenario": "dead_phone_find_my_help",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "My iPhone 12 128GB don dead finish, e no dey come on. I fit add 450k.",
+   "reply": "Ah sorry o, we go sort am sharp sharp. So na iPhone 12 128GB wey no dey come on, and you fit add ₦450,000.\n\nYour phone: ₦250,000\nDoes not turn on: minus ₦150,000\nValue of your phone: ₦100,000\n(final when we check am for pickup; the price hold for 48 hours)\n\nBecause the phone no dey come on, that deduction na provisional. We go confirm am when we check the phone for pickup.\n\nPhones wey you fit take, cheapest top-up first:\n1. iPhone 13 128GB, grade B, battery 86%, 3 months warranty. You add ₦320,000\n2. iPhone 13 128GB, grade A, battery 93%, 3 months warranty. You add ₦330,000\n3. iPhone 13 256GB, grade B, battery 87%, 3 months warranty. You add ₦360,000\n\nGrade A na like new, grade B get small light wear, but both work well well.\n\nWhich one you like?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__SharpSharp_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 12\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"no_power\" ]\n}",
+     "result": "{\"quote_token\":\"…ZKoqjgG0\",\"model\":\"iPhone 12\",\"capacity_gb\":128,\"base_ngn\":250000,\"deductions\":[{\"fault\":\"no_power\",\"label\":\"Does not turn on\",\"ngn\":150000}],\"adjustments\":[],\"value_ngn\":100000,\"valid_until\":\"2026-10-23T17:45:14.695Z\",\"inspect_faults\":[{\"fault\":\"no_power\",\"label\":\"Does not turn on\"}]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__value_trade_in",
+     "latency_ms": 93
+    },
+    {
+     "title": "Tool: mcp__SharpSharp_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…ZKoqjgG0\",\n  \"max_topup_ngn\" : 450000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1301\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":86,\"warranty_months\":3,\"price_ngn\":420000,\"topup_ngn\":320000,\"offer_token\":\"…yDOlkvfs\"},{\"unit_id\":\"SS-1303\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":93,\"warranty_months\":3,\"price_ngn\":430000,\"topup_ngn\":330000,\"offer_token\":\"…XLUb2Pv4\"},{\"unit_id\":\"SS-1304\",\"model\":\"iPhone 13\",\"capacity_gb\":256,\"grade\":\"B\",\"battery_pct\":87,\"warranty_months\":3,\"price_ngn\":460000,\"topup_ngn\":360000,\"offer_token\":\"…FQBJJtdM\"}]}",
+     "success": true,
+     "tool_name": "mcp__SharpSharp_tools__find_phones",
+     "latency_ms": 314
+    }
+   ]
+  },
+  {
+   "customer": "I like number 1. How I go off Find My? The phone no dey on.",
+   "reply": "No wahala. Because the phone no dey come on, do am like this:\n\n1. For any phone or computer, go icloud.com/find\n2. Sign in with your Apple ID (type the password for your own device, no send am to me)\n3. Click All Devices, choose the old iPhone 12\n4. Click Remove This Device\n\nWhen you don finish, tell me say Find My don off, then I go send the payment link for the iPhone 13 128GB grade B.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "2 Pidgin turn(s) answered in Pidgin"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_checkout_link": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

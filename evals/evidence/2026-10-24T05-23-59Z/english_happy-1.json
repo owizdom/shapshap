@@ -1,0 +1,68 @@
+{
+ "scenario": "english_happy",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hello, my iPhone 14 Pro 256GB screen is black and not responding. I can add 200k.",
+   "reply": "Dead phone? Let's turn it into a working one. Here is your iPhone 14 Pro 256GB with a black, unresponsive screen, and you can add ₦200,000:\n\n- Your phone, flawless and working: ₦578,310\n- Screen black or not responding to touch: minus ₦384,750\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦38,168\n- Raised to our website quote for a faulty phone: plus ₦6,650\n- Value of your phone: ₦162,042\n\n(final when we check it at pickup; this price holds 48 hours unless the shop updates its prices, and you always see the exact amount before you pay)\n\nRight now we have no phones in stock that fit a ₦200,000 top-up. Can you add more?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 14 Pro\",\n  \"capacity_gb\" : 256,\n  \"faults\" : [ \"screen_dead\" ]\n}",
+     "result": "{\"quote_token\":\"…XAXtha7o\",\"model\":\"iPhone 14 Pro\",\"capacity_gb\":256,\"base_ngn\":578310,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"screen_dead\",\"label\":\"Screen black or not responding to touch\",\"ngn\":384750}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-38168},{\"label\":\"Raised to our website quote for a faulty phone\",\"ngn\":6650}],\"value_ngn\":162042,\"valid_until\":\"2026-10-26T05:24:40.628Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 47
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…XAXtha7o\",\n  \"max_topup_ngn\" : 200000\n}",
+     "result": "{\"options\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 478
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "tool_ok": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "plain_english": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}
