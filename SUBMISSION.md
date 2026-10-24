@@ -4,7 +4,7 @@ Ziggatech, an iPhone store in Ikeja, Lagos, takes old iPhones as part-payment, b
 
 ## 1. The agent
 
-ShapShap is live on my Chord account. Chat with it in the simulator at https://chat.tsglabs.dev/c/_SN8ouVM774TDa35e1Z00SRA. The simulator header still shows SharpSharp, an earlier name the chat link kept.
+ShapShap is live on my Chord account. Chat with it in the simulator at https://chat.tsglabs.dev/c/AtKXDtG3IUa-sa9Pfi5i7FNO.
 
 A full run takes four messages:
 
