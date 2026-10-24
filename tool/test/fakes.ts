@@ -22,10 +22,14 @@ export class FakePaystack implements PaystackClient {
   failInitialize = false;
   failVerify = false;
   failList = false;
+  failListOpen = false;
+  listOpenCalls: string[] = [];
+  // the fake stamps created_at from this clock; makeCtx wires it to the test clock
+  now: () => number = () => NOW;
 
   setTxn(t: Partial<PaystackTxn> & { reference: string }): PaystackTxn {
     const full: PaystackTxn = {
-      currency: "NGN", status: "success", amount_kobo: 0, paid_at: null, gateway_response: null, metadata: null, ...t,
+      currency: "NGN", status: "success", amount_kobo: 0, paid_at: null, created_at: null, gateway_response: null, metadata: null, ...t,
     };
     this.txns.set(full.reference, full);
     return full;
@@ -44,7 +48,7 @@ export class FakePaystack implements PaystackClient {
     if (this.failInitialize) throw new PaystackUnavailable("initialize down");
     this.setTxn({
       reference: input.reference, status: "abandoned", amount_kobo: input.amount_kobo,
-      paid_at: null, gateway_response: null, metadata: input.metadata,
+      paid_at: null, created_at: new Date(this.now()).toISOString(), gateway_response: null, metadata: input.metadata,
     });
     return {
       authorization_url: `https://checkout.paystack.test/${input.reference}`,
@@ -62,6 +66,13 @@ export class FakePaystack implements PaystackClient {
     this.listCalls++;
     if (this.failList) throw new PaystackUnavailable("list down");
     return [...this.txns.values()].filter((t) => t.status === "success");
+  }
+
+  async listOpen(fromIso: string) {
+    this.listOpenCalls.push(fromIso);
+    if (this.failListOpen) throw new PaystackUnavailable("list open down");
+    const from = Date.parse(fromIso);
+    return [...this.txns.values()].filter((t) => !["success", "failed", "reversed"].includes(t.status) && t.created_at !== null && Date.parse(t.created_at) >= from);
   }
 }
 
@@ -107,6 +118,7 @@ export interface TestCtx {
 export function makeCtx(catalog: Catalog): TestCtx {
   const paystack = new FakePaystack();
   const clock = { now: NOW };
+  paystack.now = () => clock.now;
   const deps: Deps = { catalog, paystack, secret: SECRET, now: () => clock.now };
   return { deps, paystack, clock };
 }
@@ -116,7 +128,7 @@ export function makeCtx(catalog: Catalog): TestCtx {
 // GET /transaction/verify/:ref, and records every URL asked.
 export interface ApiTxn {
   reference: string; status: string; amount: number; currency: string;
-  paid_at: string | null; gateway_response: string | null; metadata: unknown;
+  paid_at: string | null; gateway_response: string | null; metadata: unknown; createdAt?: string;
 }
 
 export function apiTxn(reference: string, unit_id: string, topup_ngn: number, paid_at: string, over: Partial<ApiTxn> = {}): ApiTxn {

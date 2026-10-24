@@ -2,6 +2,8 @@ import { PaystackUnavailable } from "./types.ts";
 import type { CheckoutMetadata, PaystackClient, PaystackTxn } from "./types.ts";
 
 const BASE = "https://api.paystack.co";
+// statuses after which a checkout can no longer be paid; anything else (abandoned, ongoing, pending...) is still open
+const CLOSED = new Set(["success", "failed", "reversed"]);
 
 function parseMeta(m: unknown): CheckoutMetadata | null {
   let v = m;
@@ -21,6 +23,7 @@ function toTxn(d: any): PaystackTxn {
     status: String(d.status),
     amount_kobo: Number(d.amount),
     paid_at: d.paid_at ?? null,
+    created_at: d.createdAt ?? d.created_at ?? null,
     gateway_response: d.gateway_response ?? null,
     metadata: parseMeta(d.metadata),
   };
@@ -55,6 +58,25 @@ export function httpPaystack(secretKey: string, opts: { timeoutMs?: number; fetc
     }
   }
 
+  // Every page of GET /transaction for one status, from an ISO date when given.
+  async function list(status: string | null, from: string | undefined): Promise<PaystackTxn[]> {
+    const out: PaystackTxn[] = [];
+    let pageCount = 1;
+    for (let page = 1; page <= pageCount; page++) {
+      const q = new URLSearchParams({ perPage: "100", page: String(page) });
+      if (status) q.set("status", status);
+      if (from) q.set("from", from);
+      const { body } = await call(`/transaction?${q.toString()}`);
+      if (!body || body.status !== true || !Array.isArray(body.data)) {
+        throw new PaystackUnavailable(`Paystack list failed: ${body?.message ?? "no response"}`);
+      }
+      out.push(...body.data.map(toTxn));
+      const pc = Number(body.meta?.pageCount);
+      if (Number.isFinite(pc) && pc > 0) pageCount = pc;
+    }
+    return out;
+  }
+
   return {
     async initialize(input) {
       const { body } = await call("/transaction/initialize", {
@@ -76,21 +98,12 @@ export function httpPaystack(secretKey: string, opts: { timeoutMs?: number; fetc
       if (!body || body.status !== true || !body.data) throw new PaystackUnavailable("Paystack verify answered without data");
       return toTxn(body.data);
     },
-    async listSuccessful() {
-      const out: PaystackTxn[] = [];
-      let pageCount = 1;
-      for (let page = 1; page <= pageCount; page++) {
-        const q = new URLSearchParams({ status: "success", perPage: "100", page: String(page) });
-        if (opts.since) q.set("from", opts.since);
-        const { body } = await call(`/transaction?${q.toString()}`);
-        if (!body || body.status !== true || !Array.isArray(body.data)) {
-          throw new PaystackUnavailable(`Paystack list failed: ${body?.message ?? "no response"}`);
-        }
-        out.push(...body.data.map(toTxn));
-        const pc = Number(body.meta?.pageCount);
-        if (Number.isFinite(pc) && pc > 0) pageCount = pc;
-      }
-      return out;
+    listSuccessful() {
+      return list("success", opts.since);
+    },
+    async listOpen(fromIso) {
+      const from = opts.since && Date.parse(opts.since) > Date.parse(fromIso) ? opts.since : fromIso;
+      return (await list(null, from)).filter((t) => !CLOSED.has(t.status));
     },
   };
 }

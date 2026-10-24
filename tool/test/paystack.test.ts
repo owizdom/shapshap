@@ -58,7 +58,7 @@ describe("httpPaystack (injected fetch)", () => {
       data: { reference: "ref-1", status: "success", currency: "NGN", amount: 3000000, paid_at: "2026-10-21T10:00:00.000Z", gateway_response: "Successful", metadata: meta },
     }));
     const t = await httpPaystack("sk_test_x", { fetch: f }).verify("ref-1");
-    assert.deepEqual(t, { reference: "ref-1", currency: "NGN", status: "success", amount_kobo: 3000000, paid_at: "2026-10-21T10:00:00.000Z", gateway_response: "Successful", metadata: meta });
+    assert.deepEqual(t, { reference: "ref-1", currency: "NGN", status: "success", amount_kobo: 3000000, paid_at: "2026-10-21T10:00:00.000Z", created_at: null, gateway_response: "Successful", metadata: meta });
     assert.match(seen[0].url, /\/transaction\/verify\/ref-1$/);
   });
 
@@ -81,6 +81,26 @@ describe("httpPaystack (injected fetch)", () => {
     const b = paginatedApi(all);
     await httpPaystack("sk_test_x", { fetch: b.f }).listSuccessful();
     for (const u of b.urls.map((x) => new URL(x))) assert.equal(u.searchParams.get("from"), null);
+  });
+
+  test("H7: listOpen lists every page from the later of fromIso and since, keeps only unpaid links, and reads createdAt", async () => {
+    const all = [];
+    for (let i = 0; i < 120; i++) all.push(apiTxn(`o${i}`, `U-${i}`, 1000, null as unknown as string, { status: i % 2 ? "abandoned" : "ongoing", createdAt: "2026-10-24T10:00:00.000Z" }));
+    for (const status of ["success", "failed", "reversed"]) all.push(apiTxn(`c-${status}`, "U-x", 1000, "2026-10-24T10:00:00.000Z", { status, createdAt: "2026-10-24T10:00:00.000Z" }));
+    const a = paginatedApi(all);
+    const open = await httpPaystack("sk_test_x", { fetch: a.f, since: "2026-10-20T00:00:00.000Z" }).listOpen("2026-10-24T09:30:00.000Z");
+    assert.equal(open.length, 120);
+    assert.ok(open.every((t) => t.status === "abandoned" || t.status === "ongoing"));
+    assert.equal(open[0].created_at, "2026-10-24T10:00:00.000Z");
+    const urls = a.urls.map((u) => new URL(u));
+    assert.equal(urls.length, 2);
+    for (const u of urls) {
+      assert.equal(u.searchParams.get("status"), null);
+      assert.equal(u.searchParams.get("from"), "2026-10-24T09:30:00.000Z");
+    }
+    const b = paginatedApi(all);
+    await httpPaystack("sk_test_x", { fetch: b.f, since: "2026-10-24T09:45:00.000Z" }).listOpen("2026-10-24T09:30:00.000Z");
+    for (const u of b.urls.map((x) => new URL(x))) assert.equal(u.searchParams.get("from"), "2026-10-24T09:45:00.000Z");
   });
 
   test("a timeout throws PaystackUnavailable", async () => {

@@ -1,8 +1,8 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { signQuote, readQuote, signOffer, readOffer } from "./quote.ts";
-import { CONDITION, DEFAULT_CONDITION, PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
+import { CONDITION, DEFAULT_CONDITION, HOLD_MS, PaystackUnavailable, QUOTE_TTL_MS } from "./types.ts";
 import type {
-  Adjustment, Condition, ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, ValueTradeInArgs, ValueTradeInResult,
+  Adjustment, Condition, ConfirmPaymentResult, CreateCheckoutResult, Deps, FindPhonesResult, PaystackTxn, PhoneOption, QuotePayload, ValueTradeInArgs, ValueTradeInResult,
 } from "./types.ts";
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -102,6 +102,34 @@ function buildLedger(txns: PaystackTxn[]): Map<string, PaystackTxn> {
   return winners;
 }
 
+// The phone being traded in, without issue and expiry times: the agent re-values it every turn, so the token changes
+// while this stays the same for one customer.
+function fingerprint(q: Pick<QuotePayload, "model" | "capacity_gb" | "faults" | "condition" | "value_ngn">): string {
+  return JSON.stringify([q.model, q.capacity_gb, q.faults, q.condition, q.value_ngn]);
+}
+
+function tokenFingerprint(token: string): string | null {
+  try {
+    return fingerprint(JSON.parse(Buffer.from(token.split(".")[0], "base64url").toString("utf8")));
+  } catch {
+    return null;
+  }
+}
+
+// Units with an unpaid link opened within HOLD_MS by someone whose phone differs from the caller's (spec 0003).
+async function heldByOthers(deps: Deps, caller: QuotePayload): Promise<Set<string>> {
+  const mine = fingerprint(caller);
+  const open = await deps.paystack.listOpen(new Date(deps.now() - HOLD_MS).toISOString());
+  const held = new Set<string>();
+  for (const t of open) {
+    if (["success", "failed", "reversed"].includes(t.status) || t.currency !== "NGN" || !t.metadata || !t.created_at) continue;
+    if (Date.parse(t.created_at) < deps.now() - HOLD_MS) continue;
+    if (tokenFingerprint(t.metadata.quote_token) === mine) continue;
+    held.add(t.metadata.unit_id);
+  }
+  return held;
+}
+
 function earlier(a: PaystackTxn, b: PaystackTxn): boolean {
   const ta = a.paid_at ? Date.parse(a.paid_at) : Infinity;
   const tb = b.paid_at ? Date.parse(b.paid_at) : Infinity;
@@ -120,15 +148,17 @@ export async function findPhones(
   const q = readQuote(args.quote_token, deps.secret, deps.now());
   if (typeof q === "string") return { error: q, detail: q === "QUOTE_EXPIRED" ? "The quote has expired. Value the phone again with value_trade_in." : "The quote token is not valid. Value the phone again with value_trade_in." };
   let ledger: Map<string, PaystackTxn>;
+  let held: Set<string>;
   try {
     ledger = buildLedger(await deps.paystack.listSuccessful());
+    held = await heldByOthers(deps, q);
   } catch (e) {
     if (e instanceof PaystackUnavailable) return unavailable(e);
     throw e;
   }
   const quoteSig = args.quote_token.split(".")[1];
   const options: PhoneOption[] = deps.catalog.stock
-    .filter((u) => u.price_ngn > q.value_ngn && u.price_ngn - q.value_ngn <= args.max_topup_ngn && !ledger.has(u.unit_id))
+    .filter((u) => u.price_ngn > q.value_ngn && u.price_ngn - q.value_ngn <= args.max_topup_ngn && !ledger.has(u.unit_id) && !held.has(u.unit_id))
     .map((u) => ({ ...u, topup_ngn: u.price_ngn - q.value_ngn }))
     .sort((a, b) => a.topup_ngn - b.topup_ngn || (a.unit_id < b.unit_id ? -1 : a.unit_id > b.unit_id ? 1 : 0))
     .slice(0, 3)
@@ -160,6 +190,9 @@ export async function createCheckout(
   try {
     const ledger = buildLedger(await deps.paystack.listSuccessful());
     if (ledger.has(unit.unit_id)) return { error: "UNIT_SOLD", detail: `Unit ${unit.unit_id} has already been sold. Call find_phones again and offer another phone.` };
+    if ((await heldByOthers(deps, q)).has(unit.unit_id)) {
+      return { error: "UNIT_HELD", detail: `Another customer is paying for unit ${unit.unit_id} right now. Call find_phones again and offer another phone.` };
+    }
     const reference = `ss-${unit.unit_id.toLowerCase()}-${randomId(12)}`;
     const metadata = { unit_id: unit.unit_id, topup_ngn, quote_token: args.quote_token };
     const r = await deps.paystack.initialize({

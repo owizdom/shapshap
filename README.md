@@ -22,7 +22,7 @@ ShapShap is a Chord teammate with one skill (`skills/shapshap`) and one custom t
 
 - `value_trade_in` prices the phone with Ziggatech's website formula, then takes off each fault: the larger of the fault's percentage and Ziggatech's published repair price, never below the website's own quote for a faulty phone.
 - `find_phones` offers up to three phones from stock within the customer's budget, each with a signed price.
-- `create_checkout` opens a Paystack link for the top-up, and refuses unless the agent confirms the customer said Find My is off.
+- `create_checkout` opens a Paystack link for the top-up and holds that phone for 30 minutes, so no other customer is offered it. It refuses unless the agent confirms the customer said Find My is off.
 - `confirm_payment` checks Paystack and, if paid, returns a pickup code. The paid transaction is the reservation.
 
 Prices, faults and stock come from the owner's Google Sheet, with `tool/data` as the fallback. Paystack is the record of sales, so there is no database. [FIELD-NOTES.md](FIELD-NOTES.md) covers what broke; [GO-LIVE.md](GO-LIVE.md) is the note for the store owner.
@@ -38,7 +38,7 @@ Node 22.18 or later, and the Vercel CLI, logged in. Copy `.env.example` to `.env
 ```
 cd tool
 npm install
-npm test               # 58 tests, no network
+npm test               # 67 tests, no network
 vercel link            # creates or links the Vercel project
 vercel deploy --prod   # after setting the .env variables for Production in Vercel
 ```

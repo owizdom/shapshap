@@ -43,6 +43,8 @@ export interface Catalog { prices: PriceRow[]; faults: FaultRow[]; stock: StockU
 // a quote is valid for QUOTE_TTL_MS from issue
 
 export const QUOTE_TTL_MS = 48 * 60 * 60 * 1000;
+// a unit with an unpaid checkout link is held for HOLD_MS from the link's creation (spec 0003)
+export const HOLD_MS = 30 * 60 * 1000;
 
 export type RepairService = "screen" | "camera" | "";
 export type Wear = "flawless" | "light" | "visible" | "cracked";
@@ -109,9 +111,13 @@ export interface Checkout { reference: string; checkout_url: string; topup_ngn: 
 // is worthless, so the check is enforced in code, not only in the prompt.
 export type CreateCheckoutResult =
   | Checkout
-  | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "OFFER_INVALID" | "OFFER_EXPIRED" | "FIND_MY_ON" | "UNIT_SOLD" | "NO_TOPUP_NEEDED" | "PAYSTACK_UNAVAILABLE">;
+  | ToolError<"QUOTE_INVALID" | "QUOTE_EXPIRED" | "OFFER_INVALID" | "OFFER_EXPIRED" | "FIND_MY_ON" | "UNIT_SOLD" | "UNIT_HELD" | "NO_TOPUP_NEEDED" | "PAYSTACK_UNAVAILABLE">;
+// Hold rule (spec 0003): a unit is held when an unpaid (not success, failed or reversed) NGN transaction with its unit_id in metadata was created
+// within HOLD_MS and no successful payment owns it. The holder is the caller whose quote has the same fingerprint
+// (model, capacity_gb, faults, condition, value_ngn) as the quote_token in that transaction's metadata. find_phones
+// leaves out units held by someone else; create_checkout refuses them with UNIT_HELD before calling initialize.
 // OFFER_INVALID: bad signature, or the offer was made against a different quote_token. Check order: quote, offer,
-// find_my_off, unit still in stock and unsold, then Paystack.
+// find_my_off, unit still in stock and unsold, unit not held by another customer, then Paystack.
 
 export type ConfirmPaymentResult =
   | { status: "reserved"; unit_id: string; topup_ngn: number; pickup_code: string } // pickup_code: 6 digits
@@ -131,6 +137,7 @@ export interface PaystackTxn {
   status: string; // Paystack data.status: "success" | "failed" | "abandoned" | "ongoing" | "pending" | "reversed" | ...
   amount_kobo: number;
   paid_at: string | null; // ISO-8601, null until paid
+  created_at: string | null; // ISO-8601, when the checkout was initialized (Paystack createdAt)
   gateway_response: string | null;
   metadata: CheckoutMetadata | null;
 }
@@ -146,6 +153,10 @@ export interface PaystackClient {
   // transactions created on or after the client's `since` option when given (Paystack `from` param).
   // The same error rules as verify apply.
   listSuccessful(): Promise<PaystackTxn[]>;
+  // GET /transaction (no status filter) ; EVERY page, from the later of fromIso and the client's `since` option,
+  // keeping only links that can still be paid: any status except success, failed and reversed (abandoned, ongoing,
+  // pending...). Used for holds. The same error rules as verify apply.
+  listOpen(fromIso: string): Promise<PaystackTxn[]>;
 }
 
 // Thrown by a PaystackClient on timeout, network failure or HTTP 5xx.

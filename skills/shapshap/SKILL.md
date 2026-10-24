@@ -115,6 +115,7 @@ A cracked screen whose picture or touch fails is screen_dead, display_lines or t
 - QUOTE_EXPIRED or QUOTE_INVALID: value the phone again; the figure may change.
 - FIND_MY_ON: go back to step 3.
 - UNIT_SOLD, OFFER_INVALID, OFFER_EXPIRED or NO_TOPUP_NEEDED: call find_phones again and show the fresh options before any checkout.
+- UNIT_HELD: another customer is paying for that phone right now. Say so, call find_phones again and show the fresh options.
 - UNKNOWN_REFERENCE: use the right order ref from this chat.
 - AMOUNT_MISMATCH: do not call it reserved; give the reference and say the owner reviews it at the shop.
 - PAYSTACK_UNAVAILABLE: never say paid or declined. Ask them to try again in a few minutes; after two failures, say they can message later or come to the shop.
