@@ -1,0 +1,75 @@
+{
+ "scenario": "no_budget",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hello, I have an iPhone 14 128GB that does not charge with a cable, but wireless charging works.",
+   "reply": "Hello! Dead phone? Let's turn it into a working one.\n\nGot it, wireless charging works, so I have the charging fault noted. What is the most you can add toward a working phone?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  },
+  {
+   "customer": "I am not sure of my budget, just show me what you have.",
+   "reply": "iPhone 14, 128GB, charges only with wiggling or one cable (wireless works), no budget set yet.\n- Your phone, flawless and working: ₦361,000\n- Charges only with wiggling or one cable, wireless works: minus ₦16,859\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦23,826\n- Value of your phone: ₦320,315\n(final when we check it at pickup; this price holds 48 hours unless the shop updates its prices, and you always see the exact amount before you pay)\n\nPhones you can take, cheapest top-up first (these are the cheapest options):\n1. iPhone 13 128GB, grade B, battery 86%, 12 months warranty. You add ₦99,685\n2. iPhone 13 128GB, grade A, battery 93%, 12 months warranty. You add ₦109,685\n3. iPhone 13 256GB, grade B, battery 87%, 12 months warranty. You add ₦139,685\n\nGrade A is like new, grade B has light visible wear; both fully work. Which one would you like?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 14\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"charging_port\" ]\n}",
+     "result": "{\"quote_token\":\"…0Evjl0is\",\"model\":\"iPhone 14\",\"capacity_gb\":128,\"base_ngn\":361000,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"charging_port\",\"label\":\"Charges only with wiggling or one cable; wireless charging works\",\"ngn\":16859}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-23826}],\"value_ngn\":320315,\"valid_until\":\"2026-10-26T15:46:50.713Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 39
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…0Evjl0is\",\n  \"max_topup_ngn\" : 2000000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1301\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":86,\"warranty_months\":12,\"price_ngn\":420000,\"topup_ngn\":99685,\"offer_token\":\"…XuhrflHc\"},{\"unit_id\":\"SS-1303\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":93,\"warranty_months\":12,\"price_ngn\":430000,\"topup_ngn\":109685,\"offer_token\":\"…1cJmyqVo\"},{\"unit_id\":\"SS-1304\",\"model\":\"iPhone 13\",\"capacity_gb\":256,\"grade\":\"B\",\"battery_pct\":87,\"warranty_months\":12,\"price_ngn\":460000,\"topup_ngn\":139685,\"offer_token\":\"…CyW6pKKE\"}]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 526
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

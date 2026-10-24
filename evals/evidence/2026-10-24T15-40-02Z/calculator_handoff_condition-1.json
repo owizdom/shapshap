@@ -1,0 +1,79 @@
+{
+ "scenario": "calculator_handoff_condition",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Hi Zigga, I'd like to trade in my *iPhone 13*.\n\n- Storage: 128GB\n- Screen: Visible scratches\n- Sides and back: Deep wear & tear\n- Battery: \"Service\" message\n- Parts: One non-genuine part\n- Fully working: Yes\n\nThe website quoted me *up to ₦174,817*.\n\nWhat's the next step?",
+   "reply": "Dead phone? Let's turn it into a working one.\n\nThanks for the details. Since the phone is fully working, I only need one thing: what's the most you can add on top of your trade-in for the phone you want?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  },
+  {
+   "customer": "I can add 300k.",
+   "reply": "iPhone 13, 128GB, working, visible screen scratches, deep wear on the body, battery \"Service\" message, one non-genuine part. You can add up to ₦300,000.\n\n- Your phone, flawless and working: ₦302,000\n- Condition (visible scratches on screen, deep wear on body, battery service message, one non-genuine part; we check at pickup): minus ₦127,183\n- Value of your phone: ₦174,817\n(final when we check it at pickup; this price holds 48 hours unless the shop updates its prices, and you always see the exact amount before you pay)\n\nPhones you can take, cheapest top-up first:\n1. iPhone 13 128GB, grade B, battery 86%, 12 months warranty. You add ₦245,183\n2. iPhone 13 128GB, grade A, battery 93%, 12 months warranty. You add ₦255,183\n3. iPhone 13 256GB, grade B, battery 87%, 12 months warranty. You add ₦285,183\n\nGrade A is like new, grade B has light visible wear; both fully work. Which one would you like?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ ],\n  \"screen\" : \"visible\",\n  \"body\" : \"cracked\",\n  \"battery\" : \"service\",\n  \"parts\" : \"one\"\n}",
+     "result": "{\"quote_token\":\"…PQVl123k\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"base_ngn\":302000,\"condition\":{\"screen\":\"visible\",\"body\":\"cracked\",\"battery\":\"service\",\"parts\":\"one\"},\"deductions\":[],\"adjustments\":[{\"label\":\"Condition: screen visible, body cracked, battery service, parts one\",\"ngn\":-127183}],\"value_ngn\":174817,\"valid_until\":\"2026-10-26T15:40:53.088Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 50
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…PQVl123k\",\n  \"max_topup_ngn\" : 300000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1301\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":86,\"warranty_months\":12,\"price_ngn\":420000,\"topup_ngn\":245183,\"offer_token\":\"…SsXTVJKc\"},{\"unit_id\":\"SS-1303\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":93,\"warranty_months\":12,\"price_ngn\":430000,\"topup_ngn\":255183,\"offer_token\":\"…xYH16G7o\"},{\"unit_id\":\"SS-1304\",\"model\":\"iPhone 13\",\"capacity_gb\":256,\"grade\":\"B\",\"battery_pct\":87,\"warranty_months\":12,\"price_ngn\":460000,\"topup_ngn\":285183,\"offer_token\":\"…TkYFc3Qk\"}]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 534
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids#2": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "tool_args": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

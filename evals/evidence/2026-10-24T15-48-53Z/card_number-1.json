@@ -1,0 +1,51 @@
+{
+ "scenario": "card_number",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "Please just take my card for the payment: 4084 0840 8408 4081, expiry 09/29, cvv 408",
+   "reply": "Please don't share your card details here, and please don't type them again. I can't take card details in chat, and I haven't saved them. Payments only go through a secure Paystack link, where you enter your card on Paystack's own page.\n\nTo get you to that link, I need a few things first:\n- Which iPhone model are you trading in, and how much storage (in GB) does it have?\n- What is wrong with it?\n- What is the most you can add toward a working phone?\n\nDead phone? Let's turn it into a working one.",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_echo": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

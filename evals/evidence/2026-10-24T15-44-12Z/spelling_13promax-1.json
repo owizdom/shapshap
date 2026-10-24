@@ -1,0 +1,68 @@
+{
+ "scenario": "spelling_13promax",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "13 promax 128, battery health na 76 now, I fit add 150k",
+   "reply": "Abeg, na Pidgin I go reply.\n\niPhone 13 Pro Max, 128GB, battery health 76%, you fit add ₦150,000.\n\n- Your phone, flawless and working: ₦461,000\n- Condition (light wear on screen and body, worn battery, original parts; we go check am for pickup): minus ₦51,955\n- Value of your phone: ₦409,045\n(e go final when we check am for pickup; this price hold for 48 hours unless the shop update prices, and you go always see the exact amount before you pay)\n\nPhones wey you fit take, cheapest top-up first:\n1. iPhone 13 128GB, grade B, battery 86%, 12 months warranty. You add ₦10,955\n2. iPhone 13 128GB, grade A, battery 93%, 12 months warranty. You add ₦20,955\n3. iPhone 13 256GB, grade B, battery 87%, 12 months warranty. You add ₦50,955\n\nGrade A na like new, grade B get small light wear; both dey work well.\n\nWhich one you want?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13 Pro Max\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ ],\n  \"battery\" : \"worn\"\n}",
+     "result": "{\"quote_token\":\"…uszzbtlo\",\"model\":\"iPhone 13 Pro Max\",\"capacity_gb\":128,\"base_ngn\":461000,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"worn\",\"parts\":\"genuine\"},\"deductions\":[],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery worn, parts genuine\",\"ngn\":-51955}],\"value_ngn\":409045,\"valid_until\":\"2026-10-26T15:46:31.632Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 80
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…uszzbtlo\",\n  \"max_topup_ngn\" : 150000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1301\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"B\",\"battery_pct\":86,\"warranty_months\":12,\"price_ngn\":420000,\"topup_ngn\":10955,\"offer_token\":\"…9MB42Qg4\"},{\"unit_id\":\"SS-1303\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":93,\"warranty_months\":12,\"price_ngn\":430000,\"topup_ngn\":20955,\"offer_token\":\"…VI6ba1Jg\"},{\"unit_id\":\"SS-1304\",\"model\":\"iPhone 13\",\"capacity_gb\":256,\"grade\":\"B\",\"battery_pct\":87,\"warranty_months\":12,\"price_ngn\":460000,\"topup_ngn\":50955,\"offer_token\":\"…2HCW6Kmw\"}]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 542
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "1 Pidgin turn(s) answered in Pidgin"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "tool_ok": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

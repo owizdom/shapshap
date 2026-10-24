@@ -1,0 +1,91 @@
+{
+ "scenario": "calculator_handoff_no",
+ "run": 2,
+ "turns": [
+  {
+   "customer": "Hi Zigga, I'd like to trade in my *iPhone 16 Plus*.\n\n- Storage: 256GB\n- Screen: Light wear\n- Sides and back: Light wear\n- Battery: Healthy (80%+)\n- Parts: All genuine\n- Fully working: No\n\nThe website quoted me *up to ₦217,404*.\n\nWhat's the next step?",
+   "reply": "Hi! Dead phone? Let's turn it into a working one.\n\nThe website gives ₦217,404 for any phone that is not fully working, whatever the fault. I price the actual fault.\n\nWhat is wrong with your iPhone 16 Plus, and what is the most you can add toward a working phone?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": []
+  },
+  {
+   "customer": "It doesn't charge with a cable, but wireless charging works. I can add 150k.",
+   "reply": "Your iPhone 16 Plus, 256GB, charges only by wireless, and you can add up to ₦150,000.\n\n- Your phone, flawless and working: ₦775,890\n- Charges only with wiggling or one cable (wireless works): minus ₦36,234\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦51,209\n- Value of your phone: ₦688,447\n(final when we check it at pickup; this price holds 48 hours unless the shop updates its prices, and you always see the exact amount before you pay)\n\nPhones you can take, cheapest top-up first:\n1. iPhone 15 Plus 256GB, grade B, battery 88%, 12 months warranty. You add ₦1,553\n2. iPhone 15 128GB, grade A, battery 95%, 12 months warranty. You add ₦11,553\n3. iPhone 15 Pro 256GB, grade A, battery 92%, 12 months warranty. You add ₦101,553\n\nGrade A is like new, grade B has light visible wear; both fully work.\n\nWhich one would you like?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 16 Plus\",\n  \"capacity_gb\" : 256,\n  \"faults\" : [ \"charging_port\" ],\n  \"screen\" : \"light\",\n  \"body\" : \"light\",\n  \"battery\" : \"healthy\",\n  \"parts\" : \"genuine\"\n}",
+     "result": "{\"quote_token\":\"…7w6MZ59o\",\"model\":\"iPhone 16 Plus\",\"capacity_gb\":256,\"base_ngn\":775890,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"charging_port\",\"label\":\"Charges only with wiggling or one cable; wireless charging works\",\"ngn\":36234}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-51209}],\"value_ngn\":688447,\"valid_until\":\"2026-10-26T15:42:18.517Z\",\"inspect_faults\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 42
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…7w6MZ59o\",\n  \"max_topup_ngn\" : 150000\n}",
+     "result": "{\"options\":[{\"unit_id\":\"SS-1504\",\"model\":\"iPhone 15 Plus\",\"capacity_gb\":256,\"grade\":\"B\",\"battery_pct\":88,\"warranty_months\":12,\"price_ngn\":690000,\"topup_ngn\":1553,\"offer_token\":\"…zogKjE3Y\"},{\"unit_id\":\"SS-1501\",\"model\":\"iPhone 15\",\"capacity_gb\":128,\"grade\":\"A\",\"battery_pct\":95,\"warranty_months\":12,\"price_ngn\":700000,\"topup_ngn\":11553,\"offer_token\":\"…RDTi6vWs\"},{\"unit_id\":\"SS-1512\",\"model\":\"iPhone 15 Pro\",\"capacity_gb\":256,\"grade\":\"A\",\"battery_pct\":92,\"warranty_months\":12,\"price_ngn\":790000,\"topup_ngn\":101553,\"offer_token\":\"…ClAuqG_U\"}]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 720
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "1 turn(s) in order"
+  },
+  "register": {
+   "pass": true,
+   "detail": "no Pidgin turns"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches#2": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_forbids#2": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "tool_args": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}

@@ -12,6 +12,8 @@ Ziggatech, an iPhone store in Lagos, takes old iPhones as part-payment, but its 
 
 The cut is in the calculator's own code on [ziggatech.com/pages/iphone-funnel](https://ziggatech.com/pages/iphone-funnel): `const funcMult = selections.functional === 'no' ? 0.3 : 1.0;`. Its FAQ says Ziggatech deducts the repair cost, but only for cracked screens and weak batteries.
 
+The calculator ends with a WhatsApp button whose message carries the model, storage, the four condition answers and the website's figure, but not the fault. ShapShap is built to sit behind that button with no change to the website. It reads the condition the customer already gave, names the website's figure, and asks only what is wrong and how much they can add. For my phone, a loose charging port, the website's ₦217,404 becomes ₦688,447. The calculator's condition answers map one to one onto `value_trade_in`, because the tool uses the calculator's own multipliers.
+
 ![ShapShap in the WhatsApp simulator: the customer's description becomes an itemised valuation](assets/problem/2-shapshap-valuation.png)
 
 A demo, not affiliated with Ziggatech. Every phone, price and payment in it is test data.

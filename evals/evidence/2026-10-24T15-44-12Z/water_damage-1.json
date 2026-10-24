@@ -1,0 +1,68 @@
+{
+ "scenario": "water_damage",
+ "run": 1,
+ "turns": [
+  {
+   "customer": "My iPhone 13 128GB fall inside water and e no dey on again. I fit add 120k.",
+   "reply": "Dead phone? No wahala, we go sort am shap shap.\n\niPhone 13, 128GB, water don enter and e no dey on, you fit add ₦120,000.\n\n- Your phone, flawless and working: ₦302,000\n- Has entered water or liquid: minus ₦112,827\n- Does not turn on: minus ₦169,241\n- Condition (light wear on screen and body, healthy battery, original parts; we check at pickup): minus ₦19,932\n- Raised to our website quote for a faulty phone: plus ₦84,620\n- Value of your phone: ₦84,620\n\nThe water and no-power amounts na provisional until we check the phone. The price na final when we check am for pickup, e hold for 48 hours unless the shop update im prices, and you go always see the exact amount before you pay.\n\nRight now, we no get phone for stock wey fit this ₦120,000 top-up. You fit add more small so I fit show you wetin dey available?",
+   "agent_invoked": true,
+   "reason": null,
+   "steps": [
+    {
+     "title": "Tool: mcp__ShapShap_tools__value_trade_in",
+     "instruction": "{\n  \"model\" : \"iPhone 13\",\n  \"capacity_gb\" : 128,\n  \"faults\" : [ \"liquid_damage\", \"no_power\" ]\n}",
+     "result": "{\"quote_token\":\"…KFRnVPyU\",\"model\":\"iPhone 13\",\"capacity_gb\":128,\"base_ngn\":302000,\"condition\":{\"screen\":\"light\",\"body\":\"light\",\"battery\":\"healthy\",\"parts\":\"genuine\"},\"deductions\":[{\"fault\":\"liquid_damage\",\"label\":\"Has entered water or liquid\",\"ngn\":112827},{\"fault\":\"no_power\",\"label\":\"Does not turn on\",\"ngn\":169241}],\"adjustments\":[{\"label\":\"Condition: screen light, body light, battery healthy, parts genuine\",\"ngn\":-19932},{\"label\":\"Raised to our website quote for a faulty phone\",\"ngn\":84620}],\"value_ngn\":84620,\"valid_until\":\"2026-10-26T15:45:53.471Z\",\"inspect_faults\":[{\"fault\":\"liquid_damage\",\"label\":\"Has entered water or liquid\"},{\"fault\":\"no_power\",\"label\":\"Does not turn on\"}]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__value_trade_in",
+     "latency_ms": 60
+    },
+    {
+     "title": "Tool: mcp__ShapShap_tools__find_phones",
+     "instruction": "{\n  \"quote_token\" : \"…KFRnVPyU\",\n  \"max_topup_ngn\" : 120000\n}",
+     "result": "{\"options\":[]}",
+     "success": true,
+     "tool_name": "mcp__ShapShap_tools__find_phones",
+     "latency_ms": 604
+    }
+   ]
+  }
+ ],
+ "grades": {
+  "replied": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "figures_from_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "valuation_before_phones": {
+   "pass": true,
+   "detail": "no turn used both value_trade_in and find_phones"
+  },
+  "register": {
+   "pass": true,
+   "detail": "1 Pidgin turn(s) answered in Pidgin"
+  },
+  "checkout_gate": {
+   "pass": true,
+   "detail": "no create_checkout calls"
+  },
+  "reserved_gate": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "no_tool_for": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "calls_tools": {
+   "pass": true,
+   "detail": "ok"
+  },
+  "reply_matches": {
+   "pass": true,
+   "detail": "ok"
+  }
+ }
+}
