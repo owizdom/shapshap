@@ -11,19 +11,19 @@ import { SCENARIOS } from "./scenarios.ts";
 const tmp = () => mkdtempSync(join(tmpdir(), "ss-evals-"));
 const noSleep = async () => {};
 
-test("dry run end to end: 12 scenarios x 2 runs, all graders pass, files written", async () => {
+test("dry run end to end: 14 scenarios x 2 runs, all graders pass, files written", async () => {
   const outDir = tmp();
   const sleeps: number[] = [];
   const res = await runHarness({
     scenarios: SCENARIOS, runs: 2, budget: 6, client: new FakeChord({ creditsPerTurn: 0.02 }),
     sleep: async (ms) => { sleeps.push(ms); }, outDir,
   });
-  assert.equal(res.records.length, 24);
+  assert.equal(res.records.length, 28);
   assert.equal(res.stoppedForBudget, false);
   const failures = res.records.flatMap((r) => Object.entries(r.grades).filter(([, g]) => !g.pass).map(([k, g]) => `${r.scenario}#${r.run} ${k}: ${g.detail}`));
   assert.deepEqual(failures, []);
   const files = readdirSync(outDir);
-  assert.equal(files.filter((f) => f.endsWith(".json")).length, 24);
+  assert.equal(files.filter((f) => f.endsWith(".json")).length, 28);
   assert.ok(files.includes("summary.md"));
   assert.ok(existsSync(join(outDir, "pidgin_happy-1.json")));
   const tr = JSON.parse(readFileSync(join(outDir, "pidgin_happy-2.json"), "utf8"));
@@ -33,9 +33,9 @@ test("dry run end to end: 12 scenarios x 2 runs, all graders pass, files written
   assert.ok(tr.grades.figures_from_tools.pass);
   const summary = readFileSync(res.summaryPath, "utf8");
   assert.match(summary, /\| figures_from_tools \| 2\/2 \| yes \|/);
-  assert.match(summary, /Credits spent: 0\.720 of budget 6/);
+  assert.match(summary, /Credits spent: 0\.880 of budget 6/);
   // delays: 2 s between turns inside a run, 5 s between scenario runs
-  assert.equal(sleeps.filter((s) => s === RUN_DELAY_MS).length, 23);
+  assert.equal(sleeps.filter((s) => s === RUN_DELAY_MS).length, 27);
   const twoTurn = SCENARIOS.filter((s) => s.turns.length === 2).length;
   assert.equal(sleeps.filter((s) => s === TURN_DELAY_MS).length, twoTurn * 2 * 1);
 });

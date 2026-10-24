@@ -1,8 +1,21 @@
-// Twelve scripted scenarios. Customer messages are fixed so runs are repeatable.
+// Fourteen scripted scenarios. Customer messages are fixed so runs are repeatable.
 // All data is made up. Amounts are chosen so the stock in tool/data/stock.csv can fit them.
 import type { Scenario } from "./types.ts";
 
 const NO_CHECKOUT_TOOLS = ["create_checkout", "confirm_payment"];
+
+// The message Ziggatech's calculator (ziggatech.com/pages/iphone-funnel) puts in its WhatsApp button, built
+// the way the page's waMessage template builds it. Spec 0005.
+export function calculatorHandoff(f: { model: string; storage: string; screen: string; body: string; battery: string; parts: string; working: "Yes" | "No"; quote: string }): string {
+  return `Hi Zigga, I'd like to trade in my *${f.model}*.\n\n` +
+    `- Storage: ${f.storage}\n- Screen: ${f.screen}\n- Sides and back: ${f.body}\n- Battery: ${f.battery}\n- Parts: ${f.parts}\n` +
+    `- Fully working: ${f.working}\n\nThe website quoted me *up to ₦${f.quote}*.\n\nWhat's the next step?`;
+}
+
+// Asking again for what the calculator already sent.
+// The skill's own working read back to the customer (seen live in run 2026-10-24T15-37-57Z).
+const HANDOFF_LEAKS = ["fault list", "fully working is (yes|no)", "calculator message"];
+export const CONDITION_QUESTIONS = ["[^.!?\\n]*\\b(storage|gb|screen|scratch\\w*|battery|parts?|genuine|original|condition|body|back|wear)\\b[^.!?\\n]*\\?"];
 
 export const SCENARIOS: Scenario[] = [
   {
@@ -142,6 +155,37 @@ export const SCENARIOS: Scenario[] = [
     checks: [
       { grader: "reply_forbids", args: { any: ["reserved", "pickup code"] } },
       { grader: "no_tool_for", args: { tools: ["create_checkout"] } },
+    ],
+  },
+  {
+    id: "calculator_handoff_no",
+    description: "Calculator hand-off, not fully working: name the website figure, ask only the fault and budget, then value with its condition",
+    turns: [
+      calculatorHandoff({ model: "iPhone 16 Plus", storage: "256GB", screen: "Light wear", body: "Light wear", battery: "Healthy (80%+)", parts: "All genuine", working: "No", quote: "217,404" }),
+      "It doesn't charge with a cable, but wireless charging works. I can add 150k.",
+    ],
+    checks: [
+      { grader: "no_tool_for", args: { tools: ["value_trade_in", "find_phones", ...NO_CHECKOUT_TOOLS], turn: 0 } },
+      { grader: "reply_matches", args: { any: ["\\?"], turn: 0 } },
+      { grader: "reply_matches", args: { any: ["217,404"], turn: 0 } },
+      { grader: "reply_forbids", args: { any: CONDITION_QUESTIONS, turn: 0 } },
+      { grader: "reply_forbids", args: { any: HANDOFF_LEAKS, turn: 0 } },
+      { grader: "calls_tools", args: { tools: ["value_trade_in", "find_phones"], turn: 1 } },
+      { grader: "tool_args", args: { tool: "value_trade_in", turn: 1, faults: ["charging_port"], expect: { screen: "light", body: "light", battery: "healthy", parts: "genuine" } } },
+    ],
+  },
+  {
+    id: "calculator_handoff_condition",
+    description: "Calculator hand-off, fully working with worn condition: every condition field reaches value_trade_in, no faults",
+    turns: [
+      calculatorHandoff({ model: "iPhone 13", storage: "128GB", screen: "Visible scratches", body: "Deep wear & tear", battery: "\"Service\" message", parts: "One non-genuine part", working: "Yes", quote: "174,817" }),
+      "I can add 300k.",
+    ],
+    checks: [
+      { grader: "reply_forbids", args: { any: CONDITION_QUESTIONS, turn: 0 } },
+      { grader: "reply_forbids", args: { any: HANDOFF_LEAKS, turn: 0 } },
+      { grader: "calls_tools", args: { tools: ["value_trade_in", "find_phones"] } },
+      { grader: "tool_args", args: { tool: "value_trade_in", noFaults: true, expect: { screen: "visible", body: "cracked", battery: "service", parts: "one" } } },
     ],
   },
 ];

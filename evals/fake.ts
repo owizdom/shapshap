@@ -53,6 +53,12 @@ const o14 = [opt("SS-1301", "iPhone 13", 128, "B", 86, 3, 420000, 247000), opt("
 const v13p: Val = { model: "iPhone 13 Pro", cap: 128, base: 400000, faults: [["camera", "Camera fault", 60000]], adj: [], value: 340000 };
 const o13p = [opt("SS-1311", "iPhone 13 Pro", 128, "B", 84, 3, 540000, 340000), opt("SS-1312", "iPhone 13 Pro", 128, "A", 90, 3, 560000, 340000), opt("SS-1313", "iPhone 13 Pro", 256, "B", 85, 3, 590000, 340000)];
 
+const v16c: Val = { model: "iPhone 16 Plus", cap: 256, base: 775890, faults: [["charging_port", "Charges only with wiggling or one cable; wireless charging works", 36234]], adj: [["Condition: screen light, body light, battery healthy, parts genuine", -51209]], value: 688447 };
+const o16c = [opt("SS-1505", "iPhone 15 Pro", 256, "B", 88, 6, 760000, 688447), opt("SS-1601", "iPhone 16", 128, "A", 97, 12, 800000, 688447)];
+const v13w: Val = { model: "iPhone 13", cap: 128, base: 302000, faults: [], adj: [["Condition: screen visible, body cracked, battery service, parts one", -127183]], value: 174817 };
+const o13w = [opt("SS-1402", "iPhone 14", 128, "B", 85, 6, 455000, 174817), opt("SS-1403", "iPhone 14", 128, "A", 90, 6, 470000, 174817)];
+const W13 = { screen: "visible", body: "cracked", battery: "service", parts: "one" };
+
 export interface CannedTurn { reply: string | null; steps: Step[]; agent_invoked?: boolean }
 export type Script = Record<string, CannedTurn[]>;
 
@@ -106,6 +112,16 @@ export function goodScripts(): Script {
       { steps: [valuationStep(v13p, ["camera"]), phonesStep(250000, o13p)], reply:
         `Sorry about the camera. iPhone 13 Pro 128GB with a blurry camera, and you can add ${n(250000)}.\n${valLines(v13p, EN)}\n\nPhones you can take, cheapest top-up first:\n${phoneLines(o13p)}\nWhich one do you like?` },
       { steps: [], reply: "Great pick. I cannot send the link while Find My is still on, because a locked phone is worth nothing to the shop. If the phone turns on: Settings, tap your name, Find My, Find My iPhone, turn it off. Tell me when it is off and I will send the link." },
+    ],
+    calculator_handoff_no: [
+      { steps: [], reply: "Hello! The website gives ₦217,404 for any iPhone 16 Plus 256GB that is not fully working, whatever the fault. I price the actual fault instead. What is wrong with it, and how much can you add toward a working phone?" },
+      { steps: [valuationStep(v16c, ["charging_port"], { screen: "light", body: "light", battery: "healthy", parts: "genuine" }), phonesStep(150000, o16c)], reply:
+        `Thanks. iPhone 16 Plus 256GB that charges only wirelessly, and you can add ${n(150000)}.\n${valLines(v16c, EN)}\n\nPhones you can take, cheapest top-up first:\n${phoneLines(o16c)}\nWhich one do you like?` },
+    ],
+    calculator_handoff_condition: [
+      { steps: [], reply: "Hello! I have your iPhone 13 128GB details from the website. How much can you add toward a working phone?" },
+      { steps: [valuationStep(v13w, [], W13), phonesStep(300000, o13w)], reply:
+        `Thanks. iPhone 13 128GB, fully working, and you can add ${n(300000)}.\n${valLines(v13w, EN)}\n\nPhones you can take, cheapest top-up first:\n${phoneLines(o13w)}\nWhich one do you like?` },
     ],
     paid_without_checkout: [
       { steps: [], reply: "Abeg hold on o, I never send you any payment link for this chat, so I no see anything to confirm. Tell me the phone wey you wan change, make we start from there." },
