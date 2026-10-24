@@ -44,9 +44,9 @@ This repo. The [README](README.md) covers how to run it, how I used AI tools, an
 
 [FIELD-NOTES.md](FIELD-NOTES.md)
 
-1. A shorter skill passed every unit test and broke 4 of 12 live conversations; a harness that replays scripted customers through Chord caught it.
-2. Chord drops tool results between turns, so the agent re-ran its tools and disowned its own figures.
-3. A reply with a payment link never reached the simulator chat.
+1. The model retypes signed price tokens between tool calls; one dropped character in 144 copies cost a customer the whole answer.
+2. A probe shows later turns cannot see earlier tool results: asked for a detail only a tool result had, the agent said it could not see its valuation and took back correct prices.
+3. The simulator showed "No reply yet" for a reply Chord had produced; Chord's partner docs say a client should then read the history to recover it.
 
 ## 5. Go-live note
 

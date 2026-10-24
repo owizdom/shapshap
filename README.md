@@ -62,7 +62,7 @@ I designed and directed ShapShap, and built it with Claude Code. I picked the bu
 ## What stopped me
 
 - Paying customers out. My Paystack starter account refuses transfers ("You cannot initiate third party payouts as a starter business"), so ShapShap collects a top-up toward a better phone instead of buying phones for cash. Cash sales stay with the store.
-- Tool results between turns. In my runs Chord did not keep them, which the docs do not mention. The workaround is in field note 2; it also limits the price lock to one turn.
+- Tool results between turns. Later turns do not see them, which a probe confirmed and the docs do not mention. The workaround is in field note 2; it also limits the price lock to one turn.
 - No access to Ziggatech. Base prices and repair costs come from their public pages; fault percentages are mine, and stock is made up from Lagos listings. I do not know how many faulty-phone chats they get.
 - Reading conversations through the API. My key lacks `thread:read`, so a lost reply could be traced only through Vercel and Paystack (field note 3).
 - Photos. The simulator takes text only, and a photo of the crack is how a real customer would start.

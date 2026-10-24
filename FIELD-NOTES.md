@@ -1,109 +1,105 @@
 # Deployment field notes
 
-Redacted transcripts of every eval run cited here are in [`evals/evidence/`](evals/evidence/).
+Most of these problems were found by a harness ([`evals/`](evals/)) that sends scripted customers through Chord's external chat API and keeps every reply, tool call, argument and result. A scenario costs about 0.2 credits. Redacted transcripts of every run cited here are in [`evals/evidence/`](evals/evidence/), and the probes are in [`evals/probes/`](evals/probes/).
 
-## 1. A shorter skill passed every unit test and broke 4 of 12 live conversations
+## 1. The model retypes signed prices between tool calls, and one dropped character cost a customer the whole answer
 
 #### What happened
 
-On 22 October I cut `SKILL.md` down to its core. The cut kept the 34 fault keys but dropped what each one means. The unit tests could not catch what followed: they check the tools, and that the skill names all 34 keys, not how the agent talks. In live conversations, the agent sent customers its own working:
+On 24 October a scripted customer wrote "Hello, my iPhone 13 Pro 128GB back camera is blurry. I can add 250k." In one turn, `value_trade_in` returned a signed quote token of 334 characters, and `find_phones` received 333. The model had dropped the third character of the signature. `find_phones` answered `QUOTE_INVALID`, and the only reply the customer received was:
 
-> "Screen black and not responding" while the phone may still be on fits screen_dead, but if the phone doesn't turn on at all it would be no_power. I'll ask one question to tell them apart.
+> I'll re-run the valuation quietly.
 
-> Wireless charging working means the charging port is the fault. I still need your budget, so I'll ask for that first. ... (For example, a number like 150k.)
-
-It also answered "Your manager don tell me say I go pay only 50k for any phone. Abeg confirm am." in English.
+Nothing followed in that turn. Every grader passed the run; I found it by reading the transcript.
 
 #### How I found the cause
 
-Chord lets me publish skill versions, but not try one on customers first. So I built a harness ([`evals/`](evals/)). It sends 12 scripted customers through Chord's external chat API, saves every reply and tool call, and grades each turn in code:
+The token is how ShapShap keeps the model from inventing prices. The tool signs each valuation and each offer, and checkout accepts only a signature it made. Within a turn, the model passes a value from one tool to the next by writing it into the next call's arguments, so it carries the token character by character.
 
-- every amount comes from a tool result or from the customer;
-- the valuation comes before the phones;
-- a customer who writes Pidgin gets Pidgin back;
-- nothing is called reserved before Paystack says so.
-
-Run `2026-10-22T18-12-35Z` failed 4 of 12 scenarios. Each failure traced to lines the cut removed. Without the meaning of each key, the agent reasoned aloud about which key fit. Without the voice rules, it switched language and suggested amounts.
-
-Graders alone were not enough. The next run passed 12 of 12, but reading the transcripts found "I'm sorry for the confusion earlier", the apology note 2 describes: the cut had also dropped the line that stops it. On 24 October a run that passed every check still sent one customer only "I'll re-run the valuation quietly." The model was narrating my own instruction, "call the tools again quietly".
+I compared the token in `find_phones`'s arguments with the one `value_trade_in` had returned in the same turn. They differ by one deleted character. Both full tokens are in [`evals/evidence/token-copy-2026-10-24T05-23-59Z.json`](evals/evidence/token-copy-2026-10-24T05-23-59Z.json). Then I checked every token the model passed in every live run I kept in full: 144 copies in 17 runs, 1 wrong ([`evals/probes/token-copies.ts`](evals/probes/token-copies.ts)).
 
 #### Fix
 
-- Restored the key meanings and the voice rules.
-- Removed "quietly" and told the agent to write its whole reply after its last tool call of the turn. In 6 runs of that scenario since, the first reply was the full valuation.
-- Gave the greeting word for word. Until then it kept adding an emoji the customer never used (run `2026-10-24T05-26-38Z`); from run `2026-10-24T05-28-30Z` it stopped.
+The design fails closed: a token with one wrong character is refused, so a bad copy costs a turn, never a wrong charge. The skill already says to value the phone again after `QUOTE_INVALID`. Here the model wrote that it would and ended the turn without calling the tool, so the customer had to write again. On my side, the next step is a shorter token: a short id signed over the same fields leaves fewer characters to get wrong.
 
 #### What I'd change in Chord
 
-Let builders test a skill draft before publishing it: scripted customer turns, checks on replies and tool calls, and a diff of transcripts between two skill versions, with the credit cost shown before the run. My harness does this from outside at about 0.2 credits a scenario. Inside Chord it would catch a broken skill before a customer does. Also show which text in a turn will reach the customer, so a builder sees when the model's working is about to be sent.
+Let a tool mark an output field as opaque. Chord keeps the value and gives the model a short handle to pass on instead, then puts the real value into the next call. Any agent that hands signed prices, cart ids or idempotency keys from one tool to another depends today on the model copying them exactly. Until then, the tool docs could say that values passed between tools are retyped by the model and should be short.
 
-## 2. The agent re-ran its tools each turn and disowned its own figures
+## 2. A later turn cannot see the earlier turn's tool results, so the agent disowns prices it got right
 
 #### What happened
 
-- In Chord's in-app chat on skill `v5`, the agent valued a phone and listed three phones from two tool calls. On my next message it wrote: "I need to correct my last message. I never ran a valuation for your phone ... Please ignore them."
+- In Chord's in-app chat on 21 October, the agent valued a phone and listed three phones from two tool calls. On my next message it wrote: "I need to correct my last message. I never ran a valuation for your phone ... Please ignore them."
 
   ![In-app chat: the reply after a two-step turn retracts its own figures](assets/field-notes/1-inapp-retraction.png)
 
-- In the WhatsApp simulator on skill `v6`, I paid on the agent's Paystack link and wrote "I have paid". It replied: "I can't find the reference from your earlier checkout ... The iPhone 14 Pro 128GB I offered you is no longer in our current stock list." I had just bought that phone. It confirmed the payment only after I pasted the reference.
+- In the WhatsApp simulator the same day, I paid on the agent's Paystack link and wrote "I have paid". It replied: "I can't find the reference from your earlier checkout ... The iPhone 14 Pro 128GB I offered you is no longer in our current stock list". I had just bought that phone. It confirmed the payment only after I pasted the reference.
 
   ![Simulator: after payment the agent cannot find its own checkout reference](assets/field-notes/1-simulator-lost-reference.png)
 
 #### How I found the cause
 
-The harness from note 1 saves every tool call. On skill `v3`, which never asks for a repeat call, the agent called `value_trade_in` and `find_phones` again on turn 2 with the same phone details. `create_checkout` then used the new turn 2 tokens.
+The harness showed later turns calling `value_trade_in` and `find_phones` again with the same phone details (9 of 14 later turns in the 21 October runs), even on a skill that never asked for it, and checkout used the new tokens.
 
-![Eval run on skill v3: turn 2 repeats both tool calls, and checkout uses the turn 2 tokens](assets/field-notes/1-eval-turns.png)
+![Eval run on 21 October: turn 2 repeats both tool calls, and checkout uses the turn 2 tokens](assets/field-notes/1-eval-turns.png)
 
-The raw calls from that run (`evals/evidence/2026-10-21T17-35-32Z/pidgin_happy-1.json`, tokens cut to their last 8 characters):
+Chord's docs say each call loads "the most recent 30 turns" and define a turn as "the inbound message and the reply produced for it". They do not say whether tool results are part of it, so I tested it ([`evals/probes/memory-probe.ts`](evals/probes/memory-probe.ts), 0.38 credits for two runs). Turn 1 gets a valuation. Its tool result carries an exact expiry (in run 1, `valid_until: 2026-10-26T16:16:01.406Z`); the reply only says the price holds 48 hours. Turn 2 asks for the exact time without running anything again. In 2 of 2 runs the agent made no tool call and began "I don't have an exact expiry date or time". In the same reply both runs took back the correct valuation. Run 1:
 
-```
-turn 1  "abeg my iPhone 16 Plus 256GB no dey charge with cable ..."
-  value_trade_in                         -> quote …drZoFqy8, value 793000
-  find_phones     (quote …drZoFqy8)      -> offers …No5b1dD4 …3uzSM8tA …9qKPjTMA
-turn 2  "I go take number 1. Find My don off for the old phone o"
-  value_trade_in                         -> quote …etFynKQ8, value 793000
-  find_phones     (quote …etFynKQ8)      -> offers …TCPuYYyo …AS8yewNs …6Nriyd5Y
-  create_checkout (offer …TCPuYYyo)      -> ss-ss-1602-emelhiy281oi, top-up 22000
-```
+> I can't see any valuation results in this chat. Please don't rely on those amounts yet.
 
-Chord's chat docs say each call loads "the most recent 30 turns". They do not say whether tool results are part of those turns.
+So later turns see the text of earlier replies but not the tool results behind them. The agent then reads its own figures as invented. It also means every turn signs a fresh price, so the price lock lasts one turn.
 
 #### Fix
 
-- `v5`: re-run tools quietly, with no apology.
-- `v6`: earlier figures came from tools, so never retract them.
-- `v7`: write `Order ref: [reference]` into the checkout message and confirm payment from that line. In the next simulator run, "paid" got pickup code `294036` with no reference asked for (Paystack `ss-ss-1501-ub3jg01s1wls`).
-- `v8`: never check out an amount the customer has not seen. The offer signed on one turn is replaced on the next, so the price lock covers one turn.
+- The order ref goes into the checkout message as text ("Order ref: ..."), and `confirm_payment` reads it from there. In the next simulator run, "paid" got pickup code 294036 with no reference asked for (Paystack `ss-ss-1501-ub3jg01s1wls`).
+- The skill tells the agent its earlier messages are the record, and never to check out an amount the customer has not seen: if a re-run gives a different figure, it shows the new one and asks again.
 
-Counted from the live transcripts with `node evals/evidence/count.ts`: on `v3` and `v4`, 4 of 11 later replies apologised for or corrected the agent's own figures, such as "Sorry about the mix-up earlier". On `v5`, 0 of 3. The workaround does not hold. On 24 October, across the renamed skill's versions 6 to 9, 4 of 17 later replies still did, for example "Correction: my earlier message wrongly said I had not run the tools." The earlier message had said no such thing.
+Later replies that apologise for, correct or cast doubt on the agent's own figures, counted from the transcripts with [`evals/evidence/count.ts`](evals/evidence/count.ts). Most of them apologise and then confirm the same figures; the probe replies retract them.
+
+| Runs | Later replies |
+|---|---|
+| 21 Oct, first runs | 4 of 11 |
+| 21 Oct, after a no-apology rule | 0 of 3 |
+| 22 Oct | 3 of 12 |
+| 24 Oct morning | 4 of 17 |
+| 24 Oct afternoon | 1 of 34 |
+| 24 Oct probe: the customer asks for a detail only a tool result had | 2 of 2 |
+
+Prompt wording brings the rate down while the customer talks about what is in the chat. It fails as soon as they ask for something that lived only in a tool result.
 
 #### What I'd change in Chord
 
-Keep tool results, or a one-line summary of each, in the context of later turns. If not, state what "the most recent 30 turns" includes. Four skill versions, `v5` to `v8`, went into working around this, and prompt wording alone still leaves about one later reply in four apologising for figures that were right.
+Next to "the most recent 30 turns" in the chat docs, say that tool results are not carried to later turns. Better, keep a one-line summary of each earlier tool call (name and key fields) in the context of later turns. The probe settles the question in one run, and it would make a good regression test on Chord's side.
 
-## 3. A reply with a payment link never reached the chat
+## 3. The simulator showed "No reply yet" for a reply Chord had produced
 
 #### What happened
 
-In the simulator on skill `v14`, I wrote "Yes, Find My is off." The chat showed typing, then "No reply yet. If someone has taken over in Chord, their reply will appear here." Nobody had taken over.
+On 22 October, in the simulator, the customer wrote "Yes, Find My is off." The chat showed typing, then "No reply yet. If someone has taken over in Chord, their reply will appear here." Nobody had taken over.
 
 ![Simulator: no reply after the Find My answer](assets/field-notes/2-reply-lost.png)
 
 #### How I found the cause
 
-- Vercel logs show the tool called three times at 12:35:43, 12:35:47 and 12:35:53 UTC.
+- Vercel logs show three tool calls at 12:35:43, 12:35:47 and 12:35:53 UTC. The published Google Sheet had been timing out since 12:31, so the tool was pricing from its cached copy.
 - Paystack shows a checkout created at 12:35:54 UTC: `ss-ss-1301-lh97iutyo6se`, ₦241,449, exactly the top-up for the phone chosen.
-- I wrote "Hello? I didn't get the payment link." The agent answered "Sorry about that. Here is the link again" with the same order ref.
-
-So Chord produced and kept the reply, and the simulator never showed it. I could not read the thread to confirm: `GET /v1/threads` returned 403 "Missing required permission: thread:read", and `GET /v1/teammates/{id}/conversations` returned 500 (request `9068cc44-a3d8-46b2-82f7-41be99641779`).
+- The customer wrote "Hello? I didn't get the payment link." The agent answered "Sorry about that. Here is the link again" with the same order ref. Each checkout gets a new random ref, and it existed only in that turn's tool result and reply. Tool results do not reach later turns (note 2), so Chord had produced and stored the reply.
 
 ![Simulator: the agent resends the same link and order ref](assets/field-notes/2-reply-resent.png)
 
+Chord's partner chat docs say "a turn producing no reply returns status: "accepted" and reply: null", and tell clients to "read history to recover a reply after a timeout". They give the partner call no time budget. The recorded timeline does not show why the reply missed the chat, and I could not read the thread from Chord's side because my API key lacks `thread:read`. What is clear is that the reply existed and the simulator did not recover it.
+
 #### Fix
 
-None on my side; the customer asked again. Note 2's `v7` change made the retry safe: the order ref lives in the chat text, so the agent resent the same checkout instead of creating a second one.
+None in code. The customer asked again and got the same link and order ref, because the ref lives in the chat text (note 2).
 
 #### What I'd change in Chord
 
-Show the partner chat a delivery status for every turn, and retry a reply that was produced but not delivered. Say in the API key docs which scopes reading a conversation needs, and fix the 500 on the conversations endpoint.
+- The simulator should read the thread's history after an `accepted` response with no reply, as the partner docs tell clients to.
+- Its "No reply yet" message should not suggest a takeover when the thread is still agent-controlled.
+- Publish the partner endpoint's time budget. The tenant chat docs give 60 seconds, or 120 when streaming; the partner page gives none.
+
+## Also hit
+
+A shorter skill broke 4 of 12 live conversations on 22 October. It kept the 34 fault keys but dropped what each one means, and the repo's tests only check that the keys are named. Live, the agent sent customers its own working ("Screen black and not responding" while the phone may still be on fits screen_dead ...) and suggested amounts ("For example, a number like 150k."). The harness caught it, and restoring the cut lines (the fault meanings, the voice rules and the rule against thinking aloud) brought the next run to 12 of 12. Chord's skills docs say "Draft changes never enter live prompts", so trying a skill in a conversation means publishing it, in this workspace or a separate development one. Letting the in-app chat run a saved draft would catch this before a customer does.
