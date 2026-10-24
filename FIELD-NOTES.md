@@ -70,26 +70,3 @@ None on my side; the customer asked again. Note 1's `v7` change made the retry s
 #### What I'd change in Chord
 
 Show the partner chat a delivery status for every turn, and retry a reply that was produced but not delivered. Say in the API key docs which scopes reading a conversation needs, and fix the 500 on the conversations endpoint.
-
-## 3. The in-app chat does not show what WhatsApp shows
-
-#### What happened
-
-- In the simulator the pickup code arrived as `**888752**`, asterisks visible.
-- In Chord's in-app chat, Markdown bold shows as bold and single line breaks are merged.
-- The in-app chat accepts photos. The simulator has a text box only.
-
-![Simulator: Markdown bold arrives as literal asterisks](assets/field-notes/3-simulator-asterisks.png)
-
-#### How I found the cause
-
-Chord's chat docs define the reply as "The answer text. Markdown." WhatsApp bold uses one asterisk, so two asterisks show as typed.
-
-#### Fix
-
-- `v6`: each list item on its own `- ` line.
-- `v7`: plain text only, no Markdown.
-
-#### What I'd change in Chord
-
-Convert Markdown to WhatsApp formatting on the WhatsApp channel and in the simulator, or add a WhatsApp preview to the in-app chat. State in the docs which surfaces accept images.

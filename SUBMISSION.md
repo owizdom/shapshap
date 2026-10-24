@@ -29,7 +29,6 @@ This repo. The [README](README.md) covers how to run it, how I used AI tools, an
 
 1. Chord drops tool results between turns, so the agent re-ran its tools and disowned its own figures.
 2. A reply with a payment link never reached the simulator chat.
-3. The in-app chat shows Markdown that WhatsApp shows as literal asterisks.
 
 ## 5. Go-live note
 
