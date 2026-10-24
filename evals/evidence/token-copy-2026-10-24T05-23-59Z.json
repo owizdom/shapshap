@@ -1,0 +1,8 @@
+{
+ "run": "2026-10-24T05-23-59Z/find_my_still_on_link-1.json",
+ "turn": 0,
+ "issued_by_value_trade_in": "eyJ2IjoxLCJtb2RlbCI6ImlQaG9uZSAxMyBQcm8iLCJjYXBhY2l0eV9nYiI6MTI4LCJmYXVsdHMiOlsicmVhcl9jYW1lcmEiXSwiY29uZGl0aW9uIjp7InNjcmVlbiI6ImxpZ2h0IiwiYm9keSI6ImxpZ2h0IiwiYmF0dGVyeSI6ImhlYWx0aHkiLCJwYXJ0cyI6ImdlbnVpbmUifSwidmFsdWVfbmduIjoxNjY5MzIsImlhdCI6MTc5MjgxOTUxNDY5MiwiZXhwIjoxNzkyOTkyMzE0NjkyfQ.ZhaS2F5VezEHfDAT4AwzbWdVRU9xgC7R4D0htRRTWB8",
+ "passed_to_find_phones": "eyJ2IjoxLCJtb2RlbCI6ImlQaG9uZSAxMyBQcm8iLCJjYXBhY2l0eV9nYiI6MTI4LCJmYXVsdHMiOlsicmVhcl9jYW1lcmEiXSwiY29uZGl0aW9uIjp7InNjcmVlbiI6ImxpZ2h0IiwiYm9keSI6ImxpZ2h0IiwiYmF0dGVyeSI6ImhlYWx0aHkiLCJwYXJ0cyI6ImdlbnVpbmUifSwidmFsdWVfbmduIjoxNjY5MzIsImlhdCI6MTc5MjgxOTUxNDY5MiwiZXhwIjoxNzkyOTkyMzE0NjkyfQ.ZhS2F5VezEHfDAT4AwzbWdVRU9xgC7R4D0htRRTWB8",
+ "find_phones_result": "{\"error\":\"QUOTE_INVALID\",\"detail\":\"The quote token is not valid. Value the phone again with value_trade_in.\"}",
+ "reply_delivered": "I'll re-run the valuation quietly."
+}
