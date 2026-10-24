@@ -10,9 +10,9 @@ Ziggatech, an iPhone store in Lagos, takes old iPhones as part-payment, but its 
 
 ![Ziggatech's calculator: one yes or no for every functional fault](assets/problem/1-ziggatech-calculator.png)
 
-The cut is in the calculator's own code on [ziggatech.com/pages/iphone-funnel](https://ziggatech.com/pages/iphone-funnel): `const funcMult = selections.functional === 'no' ? 0.3 : 1.0;`. Its FAQ says Ziggatech deducts the repair cost, but only for cracked screens and weak batteries.
+The [calculator](https://ziggatech.com/pages/iphone-funnel) asks one yes-or-no question about faults, and a no keeps only 30% of the offer, whatever the fault is. Its FAQ says Ziggatech deducts the repair cost, but only for cracked screens and weak batteries.
 
-The calculator ends with a WhatsApp button whose message carries the model, storage, the four condition answers and the website's figure, but not the fault. ShapShap is built to sit behind that button with no change to the website. It reads the condition the customer already gave, names the website's figure, and asks only what is wrong and how much they can add. For my phone, a loose charging port, the website's ₦217,404 becomes ₦688,447. The calculator's condition answers map one to one onto `value_trade_in`, because the tool uses the calculator's own multipliers.
+The calculator ends with a WhatsApp button whose message carries the model, storage, the four condition answers and the website's figure, but not the fault. ShapShap is built to sit behind that button with no change to the website. It reads the condition the customer already gave, names the website's figure, and asks only what is wrong and how much they can add. For my phone, a loose charging port, the website's ₦217,404 becomes ₦688,447. ShapShap prices condition exactly as the calculator does, so the customer's answers carry over unchanged.
 
 ![The calculator's WhatsApp message, pasted into the simulator: ShapShap names the website's figure and asks only the fault and budget](assets/problem/3-calculator-handoff.png)
 
