@@ -1,6 +1,6 @@
 # Deployment field notes
 
-Most of these problems were found by a harness ([`evals/`](evals/)) that sends scripted customers through Chord's external chat API and keeps every reply, tool call, argument and result. A scenario costs about 0.2 credits. Redacted transcripts of every run cited here are in [`evals/evidence/`](evals/evidence/), and the probes are in [`evals/probes/`](evals/probes/).
+Most of these problems were found by a harness ([`evals/`](evals/)) that sends scripted customers through Chord's external chat API and keeps every reply, tool call, argument and result. A scenario costs about 0.2 credits. [`evals/evidence/README.md`](evals/evidence/README.md) lists the file behind each note, and the probes are in [`evals/probes/`](evals/probes/).
 
 ## 1. The model retypes signed prices between tool calls, and one dropped character cost a customer the whole answer
 
