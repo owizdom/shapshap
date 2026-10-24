@@ -16,7 +16,7 @@ ShapShap answers trade-in chats on WhatsApp. It values the old iPhone using your
 
 ## Decide first
 
-- Cuts for faults with no repair price. Today: 20% for charging, 40% for water damage, 60% for a dead phone.
+- Cuts for faults with no repair price. Today, for example: 5% for a loose charging port, 20% for a dead charging chip, 40% for water damage, 60% for a phone that will not turn on.
 - What happens when a phone arrives worse than described, after the customer has paid.
 - Who is told when something fails. Today nobody is.
 
@@ -26,4 +26,4 @@ ShapShap answers trade-in chats on WhatsApp. It values the old iPhone using your
 - Price sheet unreadable: customers see the last prices read. Fix the sheet, and edit prices after closing.
 - Reply never arrives: the customer asks again and gets the same link. Find the order ref in Paystack.
 
-For the first week, read every chat daily and match each payment to a pickup. To stop ShapShap, pause it in Chord and answer chats yourself.
+For the first week, read every chat daily, match each payment to a pickup, and count the faulty-phone chats and how many end in a sale. To stop ShapShap, pause it in Chord and answer chats yourself.

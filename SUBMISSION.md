@@ -1,6 +1,6 @@
 Role: Forward-deployed Engineering.
 
-Ziggatech, an iPhone store in Ikeja, Lagos, takes old iPhones as part-payment, but its website offers 70% less for any phone that is not fully working, whatever the fault. My own iPhone 16 Plus 256GB stopped charging: in light wear the website offers ₦217,404 instead of ₦724,681, and its WhatsApp button hands the chat to staff with no field for the fault. ShapShap answers that button's message: it reads the condition the website already collected, asks only what is wrong, and prices the actual fault from the store's own repair prices, so the store never pays more than its working price minus its own repair cost, and it closes the upgrade with a Paystack payment and a pickup code. I deliberately left out what needs hands or the store's systems: the pickup inspection, cash payouts and live stock.
+Ziggatech, an iPhone store in Ikeja, Lagos, takes old iPhones as part-payment, but its calculator cuts any phone that does not "power on and function normally" to 30%: an iPhone 16 Plus 256GB in light wear drops from ₦724,681 to ₦217,404, whatever the fault. ShapShap answers the calculator's WhatsApp hand-off, asks what is wrong, and takes off Ziggatech's own published repair price for that fault, the repair-cost deduction its FAQ describes. No deduction is smaller than the store's repair price and no offer drops below the website's own figure, so the store can say yes to faulty phones it now prices out. I left out what needs hands or the store's systems: the pickup inspection, cash payouts and live stock.
 
 ## 1. The agent
 

@@ -6,17 +6,25 @@ A pictorial representation of ShapShap.
 
 Role: Forward-deployed Engineering.
 
-Ziggatech, an iPhone store in Lagos, takes old iPhones as part-payment, but its website offers 70% less for any phone that is not fully working. My own iPhone 16 Plus 256GB stopped charging, and for one in light wear the website offers ₦217,404 instead of ₦724,681, whatever the repair costs. ShapShap prices the actual fault on WhatsApp from the store's own repair prices and takes the balance on Paystack, without costing the store its margin. I deliberately left out what needs hands or the store's systems: the pickup inspection, cash payouts and live stock.
+Ziggatech, an iPhone store in Ikeja, Lagos, takes old iPhones as part-payment, but its calculator cuts any phone that does not "power on and function normally" to 30%: an iPhone 16 Plus 256GB in light wear drops from ₦724,681 to ₦217,404, whatever the fault. ShapShap answers the calculator's WhatsApp hand-off, asks what is wrong, and takes off Ziggatech's own published repair price for that fault, the repair-cost deduction its FAQ describes. No deduction is smaller than the store's repair price and no offer drops below the website's own figure, so the store can say yes to faulty phones it now prices out. I left out what needs hands or the store's systems: the pickup inspection, cash payouts and live stock.
 
 ![Ziggatech's calculator: one yes or no for every functional fault](assets/problem/1-ziggatech-calculator.png)
 
-The [calculator](https://ziggatech.com/pages/iphone-funnel) asks one yes-or-no question about faults, and a no keeps only 30% of the offer, whatever the fault is. Its FAQ says Ziggatech deducts the repair cost, but only for cracked screens and weak batteries.
+The [calculator's](https://ziggatech.com/pages/iphone-funnel) FAQ says "Cracked screens and weak batteries still qualify" and "Ziggatech deducts the repair cost from the quote rather than rejecting the device". The calculator itself asks one yes-or-no question for every other fault, from charging to Face ID.
 
 The calculator ends with a WhatsApp button whose message carries the model, storage, the four condition answers and the website's figure, but not the fault. ShapShap is built to sit behind that button with no change to the website. It reads the condition the customer already gave, names the website's figure, and asks only what is wrong and how much they can add. For my phone, a loose charging port, the website's ₦217,404 becomes ₦688,447. ShapShap prices condition exactly as the calculator does, so the customer's answers carry over unchanged.
 
 ![The calculator's WhatsApp message, pasted into the simulator: ShapShap names the website's figure and asks only the fault and budget](assets/problem/3-calculator-handoff.png)
 
 ![The answer becomes an itemised valuation of ₦688,447 and phones from stock](assets/problem/4-handoff-valuation.png)
+
+## Why the store gains
+
+Take a broken rear camera on the same phone. ShapShap offers ₦496,531: the working price of ₦724,681 minus ₦228,150, Ziggatech's published price for that camera repair. The store fixes the camera and owns a working 16 Plus for what it pays for one today, and its own repair cost should be no higher than the price it charges customers. Every deduction is at least the published repair price, and an offer never drops below the website's own figure for the same phone; locked or blacklisted phones get no offer at all.
+
+What I expect but have not measured: at ₦217,404 that customer is better off repairing the phone elsewhere and selling it working, so the store loses the phone and the upgrade it would have sold. The go-live note asks the store to count those chats in the first week.
+
+Faults with no published repair price, such as a loose charging port, come off as a percentage the owner sets in the Google Sheet. The demo's percentages are mine; the go-live note asks the owner to set them.
 
 A demo, not affiliated with Ziggatech. Every phone, price and payment in it is test data.
 
@@ -53,7 +61,7 @@ Then in Chord:
 2. Create a teammate and add the skill from `skills/shapshap`, with `SKILL.md` as its instructions.
 3. Admin, Connected apps: allow approved apps. Then, in the TSG WhatsApp simulator, create a chat link for the teammate.
 
-Conversation evals: `node evals/run.ts --dry` uses a fake Chord and spends no real credits. Redacted transcripts of the live runs cited in the field notes are in `evals/evidence/`. `node evals/run.ts --runs 1 --budget-credits 6` runs live and needs a Chord key with chat, teammate and usage-read scopes.
+Conversation evals: `node evals/run.ts --dry` uses a fake Chord and spends no real credits. The harness exists because skill edits that the unit tests cannot check broke live conversations. [`evals/evidence/README.md`](evals/evidence/README.md) lists the few files behind each field note. `node evals/run.ts --runs 1 --budget-credits 6` runs live and needs a Chord key with chat, teammate and usage-read scopes.
 
 ## How I used AI tools
 
