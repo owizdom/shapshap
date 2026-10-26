@@ -38,7 +38,7 @@ This repo. The [README](README.md) covers how to run it, how I used AI tools, an
 
 ## 3. Recording
 
-[recording link]
+https://drive.google.com/file/d/1w_Z9FURyHXPx-5FrGx7GGmkR77aF_66a/view?usp=sharing
 
 ## 4. Deployment field notes
 
